@@ -1,3 +1,40 @@
+# Campus App — نقشه پردیس
+
+نقشه تعاملی پردیس دانشگاه علم و صنعت ایران: جستجوی مکان، فیلتر دسته‌بندی، مسیریابی (OSRM رایگان + نشان به‌عنوان پشتیبان) و دکمه «موقعیت من».
+
+## اجرا
+
+```bash
+npm install
+npm run dev
+```
+
+سپس [http://localhost:3000/map](http://localhost:3000/map) را باز کنید.
+
+## افزودن مکان جدید (کلاس، دفتر استاد و...)
+
+در `src/data/locations.ts` یک رکورد به آرایه اضافه کنید:
+
+```ts
+{
+  id: 147,                              // عدد یکتا (ادامه‌ی آخرین id)
+  name: "کلاس ۲۰۵ دانشکده برق",          // نامی که در جستجو و popup دیده می‌شود
+  lat: 35.74272, lng: 51.50766,         // مختصات دقیق نقطه
+  category: "academic",                 // academic | food | admin | sport | other
+  description: "طبقه دوم، انتهای راهرو", // توضیح اختیاری
+  floor: 2,                             // طبقه (اختیاری)
+}
+```
+
+- گرفتن مختصات: در Google Maps راست‌کلیک روی نقطه → اولین عدد `lat` و دومی `lng`.
+- برای دفتر استاد: نام را «دفتر استاد X» بگذارید و شماره اتاق و ساعت مراجعه را در `description` بنویسید.
+
+## مسیریابی
+
+منبع اصلی OSRM (متن‌باز، رایگان و بدون کلید) است. کلید نشان در `.env.local` (`NESHAN_API_KEY`) اختیاری است — اگر کار کند خودکار اولویت پیدا می‌کند، وگرنه OSRM جایگزین می‌شود. هر دو پاسخ در `src/app/api/route-proxy/route.ts` به شکل یکسان نرمال‌سازی می‌شوند.
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

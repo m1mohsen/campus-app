@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
 import FilterBar from '@/components/ui/FilterBar';
 import SearchBox from '@/components/ui/SearchBox';
-import { campusLocations as locations } from '@/data/locations';
 import { LocationCategory } from '@/types/location';
 
 const CampusMap = dynamic(() => import('@/components/map/CampusMap'), {
@@ -24,28 +24,25 @@ const CampusMap = dynamic(() => import('@/components/map/CampusMap'), {
   ),
 });
 
-export default function MapPage() {
+function MapPageInner() {
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-
-  const filtered = selectedCategory === 'all'
-    ? locations
-    : locations.filter(
-        (l: (typeof locations)[0]) => l.category === selectedCategory
-      );
+  const searchParams = useSearchParams();
+  const focusId = searchParams.get('loc');
+  const focusIdNumber = focusId ? parseInt(focusId, 10) : undefined;
 
   return (
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      height: '100vh',
-      fontFamily: 'system-ui, sans-serif',
+      height: 'calc(100dvh - 52px)',
+      fontFamily: 'inherit',
     }}>
       <div dir="rtl" style={{
-        padding: '12px 16px',
-        background: 'hsl(220 80% 50%)',
+        padding: '10px 16px',
+        background: 'var(--grad-blue)',
         color: '#fff',
-        fontSize: '18px',
+        fontSize: '17px',
         fontWeight: 'bold',
       }}>
         نقشه پردیس
@@ -65,13 +62,21 @@ export default function MapPage() {
       />
 
       <div style={{ flex: 1, position: 'relative' }}>
+        {/* فیلتر دسته‌بندی و جستجو داخل CampusMap انجام می‌شود */}
         <CampusMap
-          locations={filtered}
           selectedCategory={selectedCategory}
           searchQuery={searchQuery}
+          focusId={focusIdNumber}
         />
       </div>
     </div>
   );
 }
 
+export default function MapPage() {
+  return (
+    <Suspense fallback={null}>
+      <MapPageInner />
+    </Suspense>
+  );
+}

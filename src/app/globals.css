@@ -1,17 +1,33 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ═══════════ سیستم طراحی پردیس ═══════════ */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --bg: #f1f5f9;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text-2: #64748b;
+  --text-3: #94a3b8;
+  --primary: #2563eb;
+  --primary-dark: #1e40af;
+  --primary-soft: #eef2ff;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --warning: #f59e0b;
+  --grad-hero: linear-gradient(135deg, #172554 0%, #1e40af 45%, #2563eb 100%);
+  --grad-blue: linear-gradient(135deg, #1e3a8a, #2563eb);
+  --grad-violet: linear-gradient(135deg, #5b21b6, #8b5cf6);
+  --grad-green: linear-gradient(135deg, #166534, #22c55e);
+  --grad-orange: linear-gradient(135deg, #9a3412, #f97316);
+  --grad-rose: linear-gradient(135deg, #9f1239, #f43f5e);
+  --grad-teal: linear-gradient(135deg, #115e59, #14b8a6);
+  --radius: 16px;
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 6px 20px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 2px 4px rgba(15, 23, 42, 0.06), 0 12px 32px rgba(15, 23, 42, 0.12);
 }
 
 html {
   height: 100%;
+  color-scheme: light;
 }
 
 html,
@@ -24,9 +40,9 @@ body {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  font-family: var(--font-vazir), Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -42,8 +58,142 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* ── کارت پایه ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.card-hover {
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ── دکمه‌ها ── */
+.btn {
+  display: inline-block;
+  padding: 9px 18px;
+  border-radius: 12px;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 140ms, transform 140ms;
+  text-align: center;
+}
+
+.btn:hover {
+  filter: brightness(1.08);
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: var(--grad-blue);
+  color: #fff;
+}
+
+.btn-soft {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.btn-outline {
+  background: #fff;
+  border: 1.5px solid var(--border);
+  color: var(--text);
+}
+
+/* ── چیپ ── */
+.chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 140ms;
+  white-space: nowrap;
+}
+
+.chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.chip-active {
+  background: var(--grad-blue);
+  border-color: transparent;
+  color: #fff;
+}
+
+.chip-active:hover {
+  color: #fff;
+}
+
+/* ── ورودی‌ها ── */
+.input {
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  font-size: 14px;
+  background: #fff;
+  outline: none;
+  transition: border-color 140ms;
+}
+
+.input:focus {
+  border-color: var(--primary);
+}
+
+/* ── ریسپانسیو ── */
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 560px) {
+  .form-grid-3,
+  .form-grid-2 {
+    grid-template-columns: 1fr;
   }
+}
+
+/* ── نوار اسکرول باریک ── */
+::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }

@@ -9,6 +9,7 @@ const CATEGORIES: { value: LocationCategory | 'all'; label: string }[] = [
   { value: 'food',     label: '🍽️ غذا' },
   { value: 'admin',    label: '🏛️ اداری' },
   { value: 'sport',    label: '⚽ ورزشی' },
+  { value: 'gate',     label: '🚪 درها' },
   { value: 'other',    label: '📍 سایر' },
 ];
 

@@ -1,129 +1,385 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Location, LocationCategory } from '@/types/location';
+import { Location, LocationCategory, RoutingLocation } from '@/types/location';
+import { useMergedLocations } from '@/hooks/useAdminData';
+import { useRouting } from '@/hooks/useRouting';
 
-// رنگ‌های مارکر برای هر دسته
 const CATEGORY_COLORS: Record<LocationCategory, string> = {
-  academic: '#3b82f6',  // آبی
-  food: '#f97316',      // نارنجی
-  admin: '#8b5cf6',     // بنفش
-  stop: '#22c55e',      // سبز
-  other: '#6b7280'      // خاکستری
+  academic: '#3b82f6',
+  food:     '#f97316',
+  admin:    '#8b5cf6',
+  sport:    '#22c55e',
+  gate:     '#0ea5e9',
+  other:    '#6b7280',
 };
 
+const ORIGIN_COLOR      = '#16a34a';
+const DESTINATION_COLOR = '#dc2626';
+
 interface CampusMapProps {
-  locations: Location[];
   selectedCategory: LocationCategory | 'all';
   searchQuery: string;
+  /** مکان موردنظر از URL (مثلاً لینک «روی نقشه» از دستیار) — باز کردن popup و زوم */
+  focusId?: number;
 }
 
-export default function CampusMap({ locations, selectedCategory, searchQuery }: CampusMapProps) {
-  const mapRef = useRef<L.Map | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const markersRef = useRef<L.Marker[]>([]);
+const MAP_CENTER: [number, number] = [35.742111, 51.507139];
+const DEFAULT_ZOOM = 16;
 
-  // مختصات مرکز نقشه (تهران - بعداً عوض می‌کنی)
-  const MAP_CENTER: [number, number] = [35.7219, 51.3347];
-  const DEFAULT_ZOOM = 16;
+/* ── آیکون پین (مارکر مکان‌ها و مبدأ/مقصد) ── */
+function makePinIcon(color: string, size: number, halo = false): L.DivIcon {
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="
+      background-color: ${color};
+      width: ${size}px;
+      height: ${size}px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      ${halo ? `outline: 3px solid ${color}55;` : ''}
+    "></div>`,
+    iconSize:   [size, size],
+    iconAnchor: [size / 2, size],
+  });
+}
 
-  // راه‌اندازی نقشه
+/* ── محتوای popup مکان (دیتا استاتیک است؛ اگر بعداً از ورودی کاربر
+      بیاید باید escape شود) ── */
+function buildPopupHtml(location: Location): string {
+  const floorLine =
+    location.floor !== undefined
+      ? `<p style="margin:4px 0;font-size:13px;color:#555;">طبقه: ${location.floor}</p>`
+      : '';
+
+  const openLine =
+    location.isOpen !== undefined
+      ? `<p style="margin:6px 0 0 0;">
+          <span style="
+            display:inline-block;
+            padding:2px 8px;
+            border-radius:12px;
+            font-size:12px;
+            background-color:${location.isOpen ? '#22c55e' : '#ef4444'};
+            color:white;
+          ">${location.isOpen ? 'باز' : 'بسته'}</span>
+         </p>`
+      : '';
+
+  const nameEnLine = location.nameEn
+    ? `<p style="margin:4px 0;color:#666;font-size:13px;">${location.nameEn}</p>`
+    : '';
+
+  const descLine = location.description
+    ? `<p style="margin:8px 0 0 0;font-size:14px;">${location.description}</p>`
+    : '';
+
+  const tagsLine = location.tags?.length
+    ? `<p style="margin:6px 0 0 0;">${location.tags
+        .map((t) => `<span style="display:inline-block;padding:2px 8px;margin:2px 0 2px 4px;border-radius:12px;font-size:11px;background:#e0e7ff;color:#3730a3;">${t}</span>`)
+        .join('')}</p>`
+    : '';
+
+  // دیپ‌لینک مسیریابی شهری تا همین نقطه
+  const { lat, lng } = location;
+  const deepLinks = [
+    { label: 'نشان',   href: `https://neshan.org/maps/@${lat},${lng},17z,0.0p` },
+    { label: 'بلد',    href: `https://balad.ir/location?latitude=${lat}&longitude=${lng}&zoom=17` },
+    { label: 'گوگل‌مپ', href: `https://www.google.com/maps?q=${lat},${lng}` },
+  ]
+    .map(
+      (l) =>
+        `<a href="${l.href}" target="_blank" rel="noopener" style="display:inline-block;padding:4px 10px;margin:8px 0 0 4px;border-radius:8px;font-size:12px;background:#1d4ed8;color:white;text-decoration:none;">🧭 ${l.label}</a>`
+    )
+    .join('');
+
+  return `
+    <div style="direction:rtl;text-align:right;font-family:sans-serif;min-width:160px;">
+      <h3 style="margin:0 0 6px 0;font-size:16px;font-weight:bold;">${location.name}</h3>
+      ${nameEnLine}
+      ${descLine}
+      ${floorLine}
+      ${openLine}
+      ${tagsLine}
+      <div>${deepLinks}</div>
+    </div>
+  `;
+}
+
+export default function CampusMap({
+  selectedCategory,
+  searchQuery,
+  focusId,
+}: CampusMapProps) {
+  const mapRef         = useRef<L.Map | null>(null);
+  const containerRef   = useRef<HTMLDivElement>(null);
+  const baseLayerRef   = useRef<L.LayerGroup | null>(null); // مارکرهای مکان‌ها
+  const routeLayerRef  = useRef<L.LayerGroup | null>(null); // مبدأ/مقصد
+  const polylineRef    = useRef<L.Polyline | null>(null);
+  const markersByIdRef = useRef<Map<number, L.Marker>>(new Map());
+
+  const { state: routing, toggleRouting, selectLocation, locateMe, clearRoute } = useRouting();
+  const locations = useMergedLocations(); // مکان‌های پایه + اضافه‌های داشبورد مدیریت
+
+  // آخرین وضعیت مسیریابی برای استفاده داخل کلیک‌هندلر مارکرها،
+  // بدون نیاز به بازسازی همه‌ی مارکرها هنگام تغییر انتخاب‌ها
+  const routingRef = useRef(routing);
+  useEffect(() => {
+    routingRef.current = routing;
+  }, [routing]);
+
+  const handleMarkerClick = useCallback((location: Location, marker: L.Marker) => {
+    if (routingRef.current.isActive) {
+      const rl: RoutingLocation = {
+        id:   location.id,
+        lat:  location.lat,
+        lng:  location.lng,
+        name: location.name,
+      };
+      selectLocation(rl);
+    } else {
+      marker.bindPopup(buildPopupHtml(location)).openPopup();
+    }
+  }, [selectLocation]);
+
+  /* ── راه‌اندازی نقشه ── */
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    // ساخت نقشه
     const map = L.map(containerRef.current, {
       center: MAP_CENTER,
       zoom: DEFAULT_ZOOM,
-      zoomControl: true
+      zoomControl: true,
     });
 
-    // اضافه کردن لایه OpenStreetMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
-      maxZoom: 19
+      maxZoom: 19,
     }).addTo(map);
+
+    // دو لایه‌ی جدا: مکان‌ها فقط هنگام تغییر فیلتر بازسازی می‌شوند و
+    // مبدأ/مقصد فقط هنگام تغییر انتخاب
+    baseLayerRef.current  = L.layerGroup().addTo(map);
+    routeLayerRef.current = L.layerGroup().addTo(map);
 
     mapRef.current = map;
 
     return () => {
       map.remove();
-      mapRef.current = null;
+      mapRef.current        = null;
+      baseLayerRef.current  = null;
+      routeLayerRef.current = null;
     };
   }, []);
 
-  // فیلتر کردن مکان‌ها
-  const filteredLocations = locations.filter(loc => {
-    const matchesCategory = selectedCategory === 'all' || loc.category === selectedCategory;
-    const matchesSearch = !searchQuery || 
-      loc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      loc.nameEn?.toLowerCase().includes(searchQuery.toLowerCase());
+  /* ── فیلتر مکان‌ها (مکان‌های پردیس + کلاس‌ها + اضافه‌های ادمین) ── */
+  const filteredLocations = useMemo(() => locations.filter((loc) => {
+    const matchesCategory =
+      selectedCategory === 'all' || loc.category === selectedCategory;
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      !q ||
+      loc.name.toLowerCase().includes(q) ||
+      loc.nameEn?.toLowerCase().includes(q) ||
+      loc.description?.toLowerCase().includes(q);
     return matchesCategory && matchesSearch;
-  });
+  }), [locations, selectedCategory, searchQuery]);
 
-  // به‌روزرسانی مارکرها
+  /* ── مارکرهای مکان‌ها (فقط با تغییر فیلتر/جستجو بازسازی می‌شوند) ── */
+  useEffect(() => {
+    const layer = baseLayerRef.current;
+    if (!layer) return;
+
+    layer.clearLayers();
+    markersByIdRef.current.clear();
+
+    filteredLocations.forEach((location) => {
+      const marker = L.marker(
+        [location.lat, location.lng],
+        { icon: makePinIcon(CATEGORY_COLORS[location.category], 30) }
+      );
+
+      marker.bindTooltip(location.name, { direction: 'top', offset: [0, -30] });
+      marker.on('click', () => handleMarkerClick(location, marker));
+
+      layer.addLayer(marker);
+      markersByIdRef.current.set(location.id, marker);
+    });
+  }, [filteredLocations, handleMarkerClick]);
+
+  /* ── فوکوس روی مکان درخواستی از URL ── */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!focusId || !map) return;
+
+    const location = locations.find((l) => l.id === focusId);
+    if (!location) return;
+
+    map.setView([location.lat, location.lng], 18);
+    const marker = markersByIdRef.current.get(focusId);
+    if (marker) marker.bindPopup(buildPopupHtml(location)).openPopup();
+  }, [focusId, locations, filteredLocations]);
+
+  /* ── مارکرهای مبدأ و مقصد ── */
+  useEffect(() => {
+    const layer = routeLayerRef.current;
+    if (!layer) return;
+
+    layer.clearLayers();
+
+    if (routing.origin) {
+      layer.addLayer(L.marker(
+        [routing.origin.lat, routing.origin.lng],
+        { icon: makePinIcon(ORIGIN_COLOR, 36, true), zIndexOffset: 1000 }
+      ));
+    }
+
+    if (routing.destination) {
+      layer.addLayer(L.marker(
+        [routing.destination.lat, routing.destination.lng],
+        { icon: makePinIcon(DESTINATION_COLOR, 36, true), zIndexOffset: 1000 }
+      ));
+    }
+  }, [routing.origin, routing.destination]);
+
+  /* ── رسم / پاک‌کردن polyline مسیر ── */
   useEffect(() => {
     if (!mapRef.current) return;
 
-    // پاک کردن مارکرهای قبلی
-    markersRef.current.forEach(marker => marker.remove());
-    markersRef.current = [];
+    if (polylineRef.current) {
+      polylineRef.current.remove();
+      polylineRef.current = null;
+    }
 
-    // اضافه کردن مارکرهای جدید
-    filteredLocations.forEach(location => {
-      const color = CATEGORY_COLORS[location.category];
-      
-      // آیکون رنگی برای مارکر
-      const icon = L.divIcon({
-        className: 'custom-marker',
-        html: `<div style="
-          background-color: ${color};
-          width: 30px;
-          height: 30px;
-          border-radius: 50% 50% 50% 0;
-          transform: rotate(-45deg);
-          border: 3px solid white;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        "></div>`,
-        iconSize: [30, 30],
-        iconAnchor: [15, 30]
-      });
+    if (routing.polylinePoints.length > 0) {
+      const line = L.polyline(routing.polylinePoints, {
+        color:   '#3b82f6',
+        weight:  5,
+        opacity: 0.8,
+      }).addTo(mapRef.current);
 
-      const marker = L.marker([location.lat, location.lng], { icon })
-        .bindPopup(`
-          <div style="direction: rtl; text-align: right; font-family: sans-serif;">
-            <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: bold;">
-              ${location.name}
-            </h3>
-            ${location.nameEn ? `<p style="margin: 4px 0; color: #666; font-size: 13px;">${location.nameEn}</p>` : ''}
-            ${location.description ? `<p style="margin: 8px 0 0 0; font-size: 14px;">${location.description}</p>` : ''}
-            ${location.floor ? `<p style="margin: 4px 0 0 0; font-size: 13px; color: #888;">طبقه ${location.floor}</p>` : ''}
-            <p style="margin: 8px 0 0 0; font-size: 12px;">
-              <span style="
-                display: inline-block;
-                padding: 2px 8px;
-                border-radius: 12px;
-                background-color: ${location.isOpen ? '#22c55e' : '#ef4444'};
-                color: white;
-              ">
-                ${location.isOpen ? 'باز' : 'بسته'}
-              </span>
-            </p>
-          </div>
-        `)
-        .addTo(mapRef.current);
+      polylineRef.current = line;
+      mapRef.current.fitBounds(line.getBounds(), { padding: [40, 40] });
+    }
+  }, [routing.polylinePoints]);
 
-      markersRef.current.push(marker);
-    });
-  }, [filteredLocations]);
+  /* ── رابط کاربری ── */
+  const buttonStyle: React.CSSProperties = {
+    position:        'absolute',
+    right:           '12px',
+    zIndex:          1000,
+    padding:         '8px 16px',
+    borderRadius:    '8px',
+    border:          'none',
+    cursor:          'pointer',
+    fontFamily:      'sans-serif',
+    fontSize:        '14px',
+    fontWeight:      600,
+    color:           'white',
+    boxShadow:       '0 2px 8px rgba(0,0,0,0.25)',
+    transition:      'background-color 0.2s',
+  };
 
   return (
-    <div 
-      ref={containerRef} 
-      style={{ width: '100%', height: '100%' }}
-      className="leaflet-container"
-    />
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+
+      {/* دکمه مسیریابی */}
+      <button
+        onClick={routing.isActive ? clearRoute : toggleRouting}
+        aria-label={routing.isActive ? 'لغو مسیریابی' : 'شروع مسیریابی'}
+        style={{
+          ...buttonStyle,
+          top:             '12px',
+          backgroundColor: routing.isActive ? '#dc2626' : '#3b82f6',
+        }}
+      >
+        {routing.isActive ? '✕ لغو مسیریابی' : '🗺 مسیریابی'}
+      </button>
+
+      {/* دکمه موقعیت من */}
+      {routing.isActive && (
+        <button
+          onClick={locateMe}
+          disabled={routing.locating}
+          aria-label="استفاده از موقعیت من به‌عنوان مبدأ"
+          style={{
+            ...buttonStyle,
+            top:             '56px',
+            backgroundColor: routing.locating ? '#9ca3af' : '#16a34a',
+            cursor:          routing.locating ? 'wait' : 'pointer',
+          }}
+        >
+          {routing.locating ? '⏳ در حال دریافت موقعیت...' : '📍 موقعیت من'}
+        </button>
+      )}
+
+      {/* پنل راهنمای مسیریابی */}
+      {routing.isActive && (
+        <div
+          style={{
+            position:        'absolute',
+            top:             routing.origin || routing.error || routing.locating ? '100px' : '56px',
+            right:           '12px',
+            zIndex:          1000,
+            padding:         '12px 16px',
+            borderRadius:    '8px',
+            backgroundColor: 'white',
+            boxShadow:       '0 2px 12px rgba(0,0,0,0.15)',
+            fontFamily:      'sans-serif',
+            fontSize:        '13px',
+            direction:       'rtl',
+            minWidth:        '200px',
+          }}
+        >
+          {routing.locating && (
+            <p style={{ margin: 0, color: '#374151' }}>⏳ در حال دریافت موقعیت شما...</p>
+          )}
+
+          {!routing.locating && !routing.origin && (
+            <p style={{ margin: 0, color: '#374151' }}>📍 روی مبدأ کلیک کنید یا «موقعیت من» را بزنید</p>
+          )}
+
+          {routing.origin && !routing.destination && (
+            <div>
+              <p style={{ margin: '0 0 4px 0', color: '#374151' }}>
+                🟢 <strong>{routing.origin.name}</strong>
+              </p>
+              <p style={{ margin: 0, color: '#6b7280' }}>حالا روی مقصد کلیک کنید</p>
+            </div>
+          )}
+
+          {routing.origin && routing.destination && !routing.distance && !routing.error && (
+            <p style={{ margin: 0, color: '#374151' }}>⏳ در حال دریافت مسیر...</p>
+          )}
+
+          {routing.error && (
+            <p style={{ margin: 0, color: '#dc2626' }}>{routing.error}</p>
+          )}
+
+          {routing.distance && routing.duration && (
+            <div>
+              <p style={{ margin: '0 0 4px 0', color: '#16a34a', fontWeight: 600 }}>
+                {routing.mode === 'foot' ? '🚶 مسیر پیاده‌روی یافت شد' : 'مسیر یافت شد'}
+              </p>
+              <p style={{ margin: 0,           color: '#374151' }}>📏 {routing.distance}</p>
+              <p style={{ margin: '2px 0 0 0', color: '#374151' }}>
+                {routing.mode === 'foot' ? `🚶 ${routing.duration} پیاده‌روی` : `⏱ ${routing.duration}`}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* کانتینر نقشه */}
+      <div
+        ref={containerRef}
+        style={{ width: '100%', height: '100%' }}
+        className="leaflet-container"
+      />
+    </div>
   );
 }
