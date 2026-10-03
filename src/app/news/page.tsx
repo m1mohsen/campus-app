@@ -88,6 +88,37 @@ export default function NewsPage() {
       />
 
       <div dir="rtl" style={{ maxWidth: 680, margin: '0 auto', padding: '16px 16px 48px' }}>
+        {/* بنر گلستان — سایت رسمی دانشگاه */}
+        <a
+          href="https://golestan.iust.ac.ir/"
+          target="_blank"
+          rel="noopener"
+          className="card card-hover"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            padding: 16,
+            marginBottom: 12,
+            background: 'linear-gradient(135deg, #134e4a, #0d9488)',
+            border: 'none',
+            color: '#fff',
+          }}
+        >
+          <div style={{ fontSize: 30 }}>🏛</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 800, fontSize: 15 }}>سامانه گلستان دانشگاه</div>
+            <div style={{ fontSize: 12.5, opacity: 0.9, marginTop: 3, lineHeight: 1.8 }}>
+              سایت اصلی دانشگاه — اطلاعیه‌های رسمی آموزش، انتخاب واحد، شهریه و کارهای اداری
+            </div>
+          </div>
+          <div style={{ fontSize: 18 }}>↗</div>
+        </a>
+
+        <p style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 14, lineHeight: 1.9 }}>
+          کانال‌های زیر را انتخاب کنید تا آخرین پست‌ها را ببینید؛ برای اطلاعیه‌های اداری رسمی، گلستان مرجع اصلی است.
+        </p>
+
         {/* انتخاب کانال */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
           {telegramChannels.map((ch) => (

@@ -1,12 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PageHeader from '@/components/PageHeader';
 import {
   useCustomLocations,
   useCustomEvents,
 } from '@/hooks/useAdminData';
 import type { Location, LocationCategory } from '@/types/location';
+
+/**
+ * رمز داشبورد — برای تغییر، در Vercel (یا .env.local) متغیر
+ * NEXT_PUBLIC_ADMIN_PASSCODE را تنظیم کنید. پیش‌فرض: iust1405
+ * (این گیت اولیه سمت کلاینت است؛ با اتصال دیتابیس، احراز هویت واقعی
+ * سمت سرور جایگزین می‌شود.)
+ */
+const ADMIN_PASSCODE = process.env.NEXT_PUBLIC_ADMIN_PASSCODE ?? 'iust1405';
 
 const CATEGORIES: { value: LocationCategory; label: string }[] = [
   { value: 'academic', label: '🎓 آموزشی' },
@@ -39,6 +47,29 @@ export default function AdminPage() {
   const [customLocations, setCustomLocations] = useCustomLocations();
   const [customEvents, setCustomEvents] = useCustomEvents();
   const [msg, setMsg] = useState<string | null>(null);
+
+  // ── گیت رمز عبور ──
+  const [unlocked, setUnlocked] = useState(false);
+  const [passcode, setPasscode] = useState('');
+  const [passError, setPassError] = useState(false);
+
+  useEffect(() => {
+    // خواندن sessionStorage بعد از mount (جلوگیری از mismatch سرور/کلاینت)
+    const t = setTimeout(() => {
+      setUnlocked(sessionStorage.getItem('adminUnlocked') === '1');
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
+
+  function tryUnlock() {
+    if (passcode === ADMIN_PASSCODE) {
+      sessionStorage.setItem('adminUnlocked', '1');
+      setUnlocked(true);
+      setPassError(false);
+    } else {
+      setPassError(true);
+    }
+  }
 
   // ── فرم مکان ──
   const [editId, setEditId] = useState<number | null>(null);
@@ -148,6 +179,46 @@ export default function AdminPage() {
       }
     };
     reader.readAsText(file);
+  }
+
+  // صفحه‌ی قفل — تا وارد شدن رمز، هیچ‌چیز از داشبورد رندر نمی‌شود
+  if (!unlocked) {
+    return (
+      <main dir="rtl" style={{ maxWidth: 380, margin: '72px auto', padding: '0 16px' }}>
+        <div className="card" style={{ padding: 28, textAlign: 'center' }}>
+          <div style={{
+            width: 60, height: 60, borderRadius: 18, margin: '0 auto 14px',
+            background: 'var(--grad-teal)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', fontSize: 28,
+          }}>
+            🔒
+          </div>
+          <h1 style={{ fontSize: 17, fontWeight: 800 }}>داشبورد مدیریت</h1>
+          <p style={{ fontSize: 12.5, color: 'var(--text-2)', marginTop: 6, lineHeight: 1.9 }}>
+            این بخش مخصوص مدیر است — رمز عبور را وارد کنید
+          </p>
+          <input
+            type="password"
+            value={passcode}
+            onChange={(e) => { setPasscode(e.target.value); setPassError(false); }}
+            onKeyDown={(e) => e.key === 'Enter' && tryUnlock()}
+            placeholder="رمز عبور"
+            dir="ltr"
+            style={{
+              width: '100%', marginTop: 14, padding: '11px 14px',
+              borderRadius: 10, border: passError ? '1.5px solid var(--danger)' : '1.5px solid var(--border)',
+              fontSize: 15, textAlign: 'center', outline: 'none',
+            }}
+          />
+          {passError && (
+            <p style={{ color: 'var(--danger)', fontSize: 12.5, marginTop: 8 }}>رمز اشتباه است!</p>
+          )}
+          <button onClick={tryUnlock} className="btn btn-primary" style={{ width: '100%', marginTop: 12 }}>
+            ورود
+          </button>
+        </div>
+      </main>
+    );
   }
 
   return (
