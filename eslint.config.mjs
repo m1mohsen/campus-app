@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // فایل‌های تولیدی/کپی‌شده که نباید لینت شوند
+    "public/**",
+    "scripts/**",
   ]),
 ]);
 
