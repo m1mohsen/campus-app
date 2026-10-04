@@ -1,4 +1,3 @@
-import { decodePolyline } from "@/lib/decodePolyline";
 import type { RoutingLocation } from "@/types/location";
 
 export interface RouteResult {
@@ -9,9 +8,9 @@ export interface RouteResult {
 
 /**
  * دریافت مسیر از سمت سرور (`/api/route-proxy`).
- * mode=foot → مسیر پیاده (داخل پردیس) / mode=car → مسیر خودرو.
- * منبع اصلی OSRM رایگان است و نشان (در صورت کارکردن کلید) برای خودرو
- * اولویت دارد؛ پاسخ همه یکسان نرمال‌سازی شده است.
+ * mode=foot → مسیر پیاده (داخل پردیس با BRouter) / mode=car → مسیر خودرو.
+ * منابع: BRouter و OSRM (رایگان) و نشان به‌عنوان پشتیبان خودرو؛ پاسخ همه
+ * در پروکسی یکسان نرمال‌سازی شده است.
  */
 export async function fetchRoute(
   origin: RoutingLocation,
@@ -30,14 +29,13 @@ export async function fetchRoute(
   }
 
   const data = await res.json();
-  const encoded = data.routes?.[0]?.overview_polyline?.points;
-  const leg = data.routes?.[0]?.legs?.[0];
-
-  if (!encoded) throw new Error("مسیر یافت نشد");
+  if (!data.ok || !Array.isArray(data.points) || data.points.length < 2) {
+    throw new Error(data.error ?? "مسیر یافت نشد");
+  }
 
   return {
-    polylinePoints: decodePolyline(encoded),
-    distance: leg?.distance?.text ?? null,
-    duration: leg?.duration?.text ?? null,
+    polylinePoints: data.points,
+    distance: data.distanceText ?? null,
+    duration: data.durationText ?? null,
   };
 }

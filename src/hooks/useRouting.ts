@@ -134,6 +134,11 @@ export function useRouting() {
 
       if (!prev.origin) {
         apply({ ...prev, isActive: true, origin: location });
+        // اگر مقصد از قبل انتخاب شده (مثلاً با نگه‌داشتن سریع روی مکان)،
+        // همین الان مسیر بگیر
+        if (prev.destination) {
+          startFetch(location, prev.destination, resolveMode(preferredModeRef.current, location, prev.destination));
+        }
         return;
       }
 
@@ -156,6 +161,72 @@ export function useRouting() {
 
       // هر دو قبلاً انتخاب شده‌اند: شروع دوباره با مبدأ جدید
       apply(resetRoute({ ...prev, isActive: true, origin: location }));
+    },
+    [apply, startFetch]
+  );
+
+  // مسیریابی سریع: مکان داده‌شده مقصد می‌شود؛ اگر مبدأ نداریم،
+  // موقعیت کاربر خودکار مبدأ می‌شود
+  const routeTo = useCallback(
+    (location: RoutingLocation) => {
+      const prev = stateRef.current;
+      const mode = (o: RoutingLocation) => resolveMode(preferredModeRef.current, o, location);
+
+      if (prev.origin) {
+        // مبدأ داریم → این مکان مقصد می‌شود (جایگزین مقصد قبلی)
+        apply({
+          ...prev,
+          isActive: true,
+          destination: location,
+          polylinePoints: [],
+          distance: null,
+          duration: null,
+          error: null,
+        });
+        startFetch(prev.origin, location, mode(prev.origin));
+        return;
+      }
+
+      // مبدأ نداریم → مقصد ثبت و موقعیت کاربر مبدأ می‌شود
+      apply({
+        ...prev,
+        isActive: true,
+        destination: location,
+        polylinePoints: [],
+        distance: null,
+        duration: null,
+        error: null,
+      });
+
+      if (!("geolocation" in navigator)) {
+        apply({
+          ...stateRef.current,
+          error: "موقعیت‌یابی پشتیبانی نمی‌شود — اول روی مبدأ کلیک کنید",
+        });
+        return;
+      }
+
+      apply({ ...stateRef.current, locating: true });
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const origin: RoutingLocation = {
+            id: -1,
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            name: "موقعیت من",
+          };
+          apply({ ...stateRef.current, locating: false, origin });
+          startFetch(origin, location, mode(origin));
+        },
+        () => {
+          apply({
+            ...stateRef.current,
+            locating: false,
+            error: "دسترسی به موقعیت رد شد — اول روی مبدأ کلیک کنید",
+          });
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+      );
     },
     [apply, startFetch]
   );
@@ -217,5 +288,5 @@ export function useRouting() {
     apply(resetRoute({ ...stateRef.current, isActive: false }));
   }, [apply]);
 
-  return { state, preferredMode, setPreferredMode, toggleRouting, selectLocation, locateMe, clearRoute };
+  return { state, preferredMode, setPreferredMode, toggleRouting, selectLocation, routeTo, locateMe, clearRoute };
 }

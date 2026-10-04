@@ -1,17 +1,31 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Map as MlMap,
   NavigationControl,
   Popup,
+  setWorkerUrl,
   type LayerSpecification,
   type MapLayerMouseEvent,
 } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { Location } from '@/types/location';
 
+// ورکر مپ‌لیبر با Turbopack درست لود نمی‌شود؛ نسخه‌ی استاتیک در public
+// (با postinstall همیشه هم‌نسخه‌ی کتابخانه کپی می‌شود)
+setWorkerUrl('/maplibre-gl-worker.mjs');
+
 const CAMPUS_CENTER: [number, number] = [51.507139, 35.742111]; // lng,lat
+
+function webglSupported(): boolean {
+  try {
+    const c = document.createElement('canvas');
+    return !!(c.getContext('webgl2') || c.getContext('webgl'));
+  } catch {
+    return false;
+  }
+}
 
 interface CampusMap3DProps {
   locations: Location[];
@@ -25,9 +39,16 @@ interface CampusMap3DProps {
  */
 export default function CampusMap3D({ locations, onClose }: CampusMap3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [fatal] = useState<string | null>(
+    typeof window !== 'undefined' && !webglSupported()
+      ? 'مرورگر فعلی از WebGL پشتیبانی نمی‌کند — لطفاً در Chrome یا Edge باز کنید'
+      : null
+  );
+  const [errText, setErrText] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (fatal || !containerRef.current) return;
 
     const map = new MlMap({
       container: containerRef.current,
@@ -39,6 +60,26 @@ export default function CampusMap3D({ locations, onClose }: CampusMap3DProps) {
       attributionControl: false,
     });
     map.addControl(new NavigationControl({ visualizePitch: true }), 'bottom-left');
+    // دسترسی دیباگ از کنسول
+    (window as unknown as { __map3d?: MlMap }).__map3d = map;
+
+    // هر خطای تایل/استایل را نمایش بده — نه صفحه‌ی خاکستریِ بی‌توضیح
+    map.on('error', (e) => {
+      const msg =
+        (e as { error?: { message?: string } })?.error?.message ??
+        'خطا در بارگذاری کاشی‌های نقشه';
+      setErrText(msg);
+    });
+
+    // با لود موفق، بنر خطا (اگر هست) پاک شود
+    map.on('load', () => setErrText(null));
+
+    // اگر استایل بعد از ۱۲ ثانیه لود نشد، پیام بده
+    const styleTimer = setTimeout(() => {
+      if (!map.isStyleLoaded()) {
+        setErrText('لود استایل نقشه طول کشید — احتمالاً فیلترینگ جلوی سرور تایل‌ها را گرفته');
+      }
+    }, 12000);
 
     let cancelled = false;
 
@@ -123,13 +164,52 @@ export default function CampusMap3D({ locations, onClose }: CampusMap3DProps) {
 
     return () => {
       cancelled = true;
+      clearTimeout(styleTimer);
       map.remove();
     };
-  }, [locations]);
+  }, [locations, fatal, reloadKey]);
+
+  if (fatal) {
+    return (
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 900, background: '#dfe8f2',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+      }}>
+        <div dir="rtl" className="card" style={{ padding: 24, maxWidth: 360, textAlign: 'center' }}>
+          <div style={{ fontSize: 40 }}>🏙</div>
+          <p style={{ marginTop: 10, fontSize: 14, lineHeight: 2, color: 'var(--text)' }}>{fatal}</p>
+          <button onClick={onClose} className="btn btn-primary" style={{ marginTop: 10 }}>
+            بازگشت به نقشه دوبعدی
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 900, background: '#dfe8f2' }}>
       <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
+
+      {/* بنر خطا (به‌جای صفحه‌ی خاکستری بی‌توضیح) */}
+      {errText && (
+        <div dir="rtl" style={{
+          position: 'absolute', top: 64, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 980, maxWidth: '92%',
+          background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e',
+          padding: '10px 14px', borderRadius: 12, fontSize: 12.5, lineHeight: 1.9,
+          boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
+        }}>
+          ⚠ {errText}
+          <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => { setErrText(null); setReloadKey((k) => k + 1); }}
+              style={{ padding: '4px 12px', borderRadius: 8, border: '1px solid #fde68a', background: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}
+            >
+              ↻ تلاش دوباره
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* برچسب راهنما */}
       <div dir="rtl" style={{

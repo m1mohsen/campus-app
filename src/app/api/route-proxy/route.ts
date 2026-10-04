@@ -1,17 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
+import { decodePolyline } from "@/lib/decodePolyline";
 
 /**
- * پروکسی مسیریابی: از سرور کلید API را مخفی نگه می‌دارد و پاسخ
- * منابع مختلف را به یک شکل یکسان (سازگار با نشان) برمی‌گرداند.
+ * پروکسی مسیریابی — پاسخ یکپارچه: { ok, mode, points, distanceText, durationText }
  *
- * mode=foot → مسیریابی پیاده‌روی (سرور متن‌باز OSM) — مناسب مسیرهای داخل پردیس
- * mode=car  → نشان (اگر کلید کار کند) و در غیر این صورت OSRM
- * اگر مسیر پیاده پیدا نشد، خودکار به خودرو برمی‌گردیم.
+ * mode=foot → اول BRouter (پروفایل shortest — مسیر واقعی داخل پردیس رد می‌شود)،
+ *             اگر نشد OSRM foot، و در نهایت OSRM خودرو.
+ * mode=car  → نشان (اگر کلید کار کند) و در غیر این صورت OSRM.
  */
 
 interface LatLng {
   lat: number;
   lng: number;
+}
+
+interface UnifiedRoute {
+  points: [number, number][];
+  distanceText: string;
+  durationText: string;
 }
 
 function parseLatLng(raw: string): LatLng | null {
@@ -30,68 +36,96 @@ function formatDistance(meters: number): string {
 }
 
 function formatDuration(seconds: number): string {
-  const mins = Math.round(seconds / 60);
+  const mins = Math.max(1, Math.round(seconds / 60));
   if (mins < 60) return `${mins} دقیقه`;
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   return m ? `${h} ساعت و ${m} دقیقه` : `${h} ساعت`;
 }
 
-function normalize(route: { geometry: string; distance: number; duration: number }) {
+/** BRouter با پروفایل shortest — مسیرهای داخل پردیس را هم رد می‌کند */
+async function fetchBRouterFoot(origin: LatLng, destination: LatLng): Promise<UnifiedRoute> {
+  const lonlats = `${origin.lng},${origin.lat}|${destination.lng},${destination.lat}`;
+  const res = await fetch(
+    `https://brouter.de/brouter?lonlats=${lonlats}&profile=shortest&alternativeidx=0&format=geojson`,
+    { cache: "no-store", signal: AbortSignal.timeout(20000) }
+  );
+  const text = await res.text();
+  let data: {
+    features?: {
+      properties?: Record<string, string>;
+      geometry?: { coordinates?: [number, number][] };
+    }[];
+  };
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error("BRouter error");
+  }
+  const feature = data.features?.[0];
+  const coords = feature?.geometry?.coordinates;
+  if (!coords || coords.length < 2) throw new Error("مسیر پیاده یافت نشد");
+
+  const points = coords.map(([lng, lat]) => [lat, lng] as [number, number]);
+  const meters = Number(feature?.properties?.["track-length"] ?? 0);
+  const seconds = Number(feature?.properties?.["total-time"] ?? 0);
+
   return {
-    routes: [
-      {
-        overview_polyline: { points: route.geometry },
-        legs: [
-          {
-            distance: { text: formatDistance(route.distance) },
-            duration: { text: formatDuration(route.duration) },
-          },
-        ],
-      },
-    ],
+    points,
+    distanceText: formatDistance(meters),
+    durationText: formatDuration(seconds),
   };
 }
 
-/** پیاده‌روی — سرور متن‌باز OSM (پروفایل foot) */
-async function fetchFoot(origin: LatLng, destination: LatLng) {
+/** OSRM (foot یا driving) — پاسخ polyline با دقت 1e5 */
+async function fetchOSRM(
+  origin: LatLng,
+  destination: LatLng,
+  profile: "foot" | "driving"
+): Promise<UnifiedRoute> {
+  const base =
+    profile === "foot"
+      ? "https://routing.openstreetmap.de/routed-foot/route/v1/foot"
+      : "https://router.project-osrm.org/route/v1/driving";
   const coords = `${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
-  const res = await fetch(
-    `https://routing.openstreetmap.de/routed-foot/route/v1/foot/${coords}?overview=full&geometries=polyline`,
-    { cache: "no-store", signal: AbortSignal.timeout(10000) }
-  );
-  if (!res.ok) throw new Error(`OSRM foot error ${res.status}`);
-
-  const data = await res.json();
-  const route = data?.routes?.[0];
-  if (data?.code !== "Ok" || !route?.geometry) throw new Error("مسیر پیاده یافت نشد");
-  return normalize(route);
-}
-
-/** خودرو — سرور متن‌باز OSRM */
-async function fetchOSRM(origin: LatLng, destination: LatLng) {
-  // OSRM ترتیب lng,lat می‌خواهد
-  const coords = `${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
-  const res = await fetch(
-    `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=polyline`,
-    { cache: "no-store", signal: AbortSignal.timeout(10000) }
-  );
+  const res = await fetch(`${base}/${coords}?overview=full&geometries=polyline`, {
+    cache: "no-store",
+    signal: AbortSignal.timeout(10000),
+  });
   if (!res.ok) throw new Error(`OSRM error ${res.status}`);
 
   const data = await res.json();
   const route = data?.routes?.[0];
   if (data?.code !== "Ok" || !route?.geometry) throw new Error("مسیر یافت نشد");
-  return normalize(route);
+
+  return {
+    points: decodePolyline(route.geometry),
+    distanceText: formatDistance(route.distance),
+    durationText: formatDuration(route.duration),
+  };
 }
 
-/** خودرو — نشان (اگر کلید معتبر باشد) */
-async function fetchNeshan(origin: LatLng, destination: LatLng, apiKey: string) {
+/** نشان (خودرو) — polyline با دقت 1e5 */
+async function fetchNeshan(
+  origin: LatLng,
+  destination: LatLng,
+  apiKey: string
+): Promise<UnifiedRoute> {
   const res = await fetch(
     `https://api.neshan.org/v4/direction?type=car&origin=${origin.lat},${origin.lng}&destination=${destination.lat},${destination.lng}`,
     { headers: { "Api-Key": apiKey }, cache: "no-store", signal: AbortSignal.timeout(10000) }
   );
   if (!res.ok) throw new Error(`Neshan error ${res.status}`);
-  return res.json();
+  const data = await res.json();
+  const route = data?.routes?.[0];
+  const leg = route?.legs?.[0];
+  if (!route?.overview_polyline?.points) throw new Error("مسیر یافت نشد");
+
+  return {
+    points: decodePolyline(route.overview_polyline.points),
+    distanceText: leg?.distance?.text ?? formatDistance(route.distance ?? 0),
+    durationText: leg?.duration?.text ?? formatDuration(route.duration ?? 0),
+  };
 }
 
 export async function GET(request: NextRequest) {
@@ -105,31 +139,56 @@ export async function GET(request: NextRequest) {
   }
 
   const apiKey = process.env.NESHAN_API_KEY;
+  let result: UnifiedRoute | null = null;
+  const errors: string[] = [];
 
   try {
     if (mode === "foot") {
-      // مسیر پیاده؛ اگر نشد مسیر خودرو (بهتر از هیچی)
+      // ۱) BRouter — تنها سروری که مسیر داخل پردیس را درست می‌دهد
       try {
-        return NextResponse.json(await fetchFoot(origin, destination));
-      } catch {
-        return NextResponse.json(await fetchOSRM(origin, destination));
+        result = await fetchBRouterFoot(origin, destination);
+      } catch (e) {
+        errors.push(`brouter: ${e instanceof Error ? e.message : "?"}`);
       }
-    }
-
-    // خودرو: اول نشان (اگر کلید باشد)، در خطا OSRM
-    if (apiKey) {
-      try {
-        const data = await fetchNeshan(origin, destination, apiKey);
-        if (data?.routes?.[0]?.overview_polyline?.points) {
-          return NextResponse.json(data);
+      // ۲) OSRM پیاده
+      if (!result) {
+        try {
+          result = await fetchOSRM(origin, destination, "foot");
+        } catch (e) {
+          errors.push(`osrm-foot: ${e instanceof Error ? e.message : "?"}`);
         }
-      } catch {
-        // رد شدن به OSRM
+      }
+      // ۳) آخرین جایگزین: مسیر خودرو
+      if (!result) {
+        try {
+          result = await fetchOSRM(origin, destination, "driving");
+        } catch (e) {
+          errors.push(`osrm-car: ${e instanceof Error ? e.message : "?"}`);
+        }
+      }
+    } else {
+      // خودرو: اول نشان (اگر کلید باشد)، بعد OSRM
+      if (apiKey) {
+        try {
+          result = await fetchNeshan(origin, destination, apiKey);
+        } catch (e) {
+          errors.push(`neshan: ${e instanceof Error ? e.message : "?"}`);
+        }
+      }
+      if (!result) {
+        result = await fetchOSRM(origin, destination, "driving");
       }
     }
-    return NextResponse.json(await fetchOSRM(origin, destination));
   } catch (err) {
-    const message = err instanceof Error ? err.message : "خطای ناشناخته";
-    return NextResponse.json({ error: message }, { status: 502 });
+    errors.push(`final: ${err instanceof Error ? err.message : "?"}`);
   }
+
+  if (!result) {
+    return NextResponse.json(
+      { error: "هیچ مسیری پیدا نشد", detail: errors.join(" | ") },
+      { status: 502 }
+    );
+  }
+
+  return NextResponse.json({ ok: true, mode, ...result });
 }

@@ -4,6 +4,9 @@ import { useEffect, useMemo, useRef, useCallback, useState } from 'react';
 import dynamic from 'next/dynamic';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { Location, LocationCategory, RoutingLocation } from '@/types/location';
 import { useMergedLocations } from '@/hooks/useAdminData';
 import { useRouting, ModePreference } from '@/hooks/useRouting';
@@ -120,7 +123,8 @@ export default function CampusMap({
 }: CampusMapProps) {
   const mapRef         = useRef<L.Map | null>(null);
   const containerRef   = useRef<HTMLDivElement>(null);
-  const baseLayerRef   = useRef<L.LayerGroup | null>(null); // مارکرهای مکان‌ها
+  // کلاستر: روی موبایل به‌جای ۱۵۰ پینِ تو‌در‌تو، خوشه‌های شمارش‌دار
+  const baseLayerRef   = useRef<L.MarkerClusterGroup | null>(null);
   const routeLayerRef  = useRef<L.LayerGroup | null>(null); // مبدأ/مقصد
   const polylineRef    = useRef<L.Polyline | null>(null);
   const markersByIdRef = useRef<Map<number, L.Marker>>(new Map());
@@ -131,6 +135,7 @@ export default function CampusMap({
     setPreferredMode,
     toggleRouting,
     selectLocation,
+    routeTo,
     locateMe,
     clearRoute,
   } = useRouting();
@@ -173,9 +178,14 @@ export default function CampusMap({
       maxZoom: 19,
     }).addTo(map);
 
-    // دو لایه‌ی جدا: مکان‌ها فقط هنگام تغییر فیلتر بازسازی می‌شوند و
-    // مبدأ/مقصد فقط هنگام تغییر انتخاب
-    baseLayerRef.current  = L.layerGroup().addTo(map);
+    // دو لایه‌ی جدا: مکان‌ها (کلاسترشده) فقط هنگام تغییر فیلتر بازسازی
+    // می‌شوند و مبدأ/مقصد فقط هنگام تغییر انتخاب
+    baseLayerRef.current = L.markerClusterGroup({
+      maxClusterRadius: 45,
+      showCoverageOnHover: false,
+      spiderfyDistanceMultiplier: 1.5,
+      disableClusteringAtZoom: 18,
+    }).addTo(map);
     routeLayerRef.current = L.layerGroup().addTo(map);
 
     mapRef.current = map;
@@ -220,8 +230,41 @@ export default function CampusMap({
 
       layer.addLayer(marker);
       markersByIdRef.current.set(location.id, marker);
+
+      // مسیریابی سریع: نگه‌داشتن انگشت (موبایل) یا راست‌کلیک (دسکتاپ)
+      const el = marker.getElement();
+      if (el) {
+        let holdTimer: ReturnType<typeof setTimeout> | null = null;
+        const startHold = () => {
+          holdTimer = setTimeout(() => {
+            holdTimer = null;
+            routeTo({
+              id: location.id,
+              lat: location.lat,
+              lng: location.lng,
+              name: location.name,
+            });
+          }, 550);
+        };
+        const cancelHold = () => {
+          if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+        };
+        el.addEventListener('touchstart', startHold, { passive: true });
+        el.addEventListener('touchend', cancelHold);
+        el.addEventListener('touchmove', cancelHold);
+        el.addEventListener('touchcancel', cancelHold);
+        el.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          routeTo({
+            id: location.id,
+            lat: location.lat,
+            lng: location.lng,
+            name: location.name,
+          });
+        });
+      }
     });
-  }, [filteredLocations, handleMarkerClick]);
+  }, [filteredLocations, handleMarkerClick, routeTo]);
 
   /* ── فوکوس روی مکان درخواستی از URL ── */
   useEffect(() => {
@@ -454,6 +497,17 @@ export default function CampusMap({
         style={{ width: '100%', height: '100%' }}
         className="leaflet-container"
       />
+
+      {/* راهنمای مسیریابی سریع */}
+      <div style={{
+        position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)',
+        zIndex: 1000, background: 'rgba(15,23,42,0.78)', color: '#fff',
+        padding: '6px 14px', borderRadius: 999, fontSize: 11.5,
+        backdropFilter: 'blur(6px)', whiteSpace: 'nowrap', pointerEvents: 'none',
+        maxWidth: '94%', overflow: 'hidden', textOverflow: 'ellipsis',
+      }}>
+        👆 نگه‌داشتن روی هر مکان (یا راست‌کلیک) = مسیریابی سریع تا آنجا
+      </div>
 
       {/* نمای سه‌بعدی */}
       {show3D && (
