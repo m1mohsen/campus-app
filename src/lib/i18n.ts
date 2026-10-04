@@ -14,6 +14,7 @@ const LANG_INDEX: Record<Lang, 0 | 1 | 2> = { fa: 0, en: 1, ar: 2 };
 const D: Record<string, [string, string, string]> = {
   // ── ناوبار ──
   'nav.map': ['نقشه', 'Map', 'الخريطة'],
+  'nav.courses': ['کلاس‌ها', 'Classes', 'الحصص'],
   'nav.assistant': ['دستیار', 'Assistant', 'المساعد'],
   'nav.news': ['اخبار', 'News', 'الأخبار'],
   'nav.spots': ['پاتوق‌ها', 'Hangouts', 'الأماكن'],

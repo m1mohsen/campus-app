@@ -7,6 +7,7 @@ import { LANGS, type Lang } from '@/lib/i18n';
 
 const LINKS = [
   { href: '/map',       key: 'nav.map' },
+  { href: '/courses',   key: 'nav.courses' },
   { href: '/assistant', key: 'nav.assistant' },
   { href: '/news',      key: 'nav.news' },
   { href: '/spots',     key: 'nav.spots' },
@@ -18,7 +19,7 @@ const LINKS = [
 ];
 
 const ICONS: Record<string, string> = {
-  '/map': '🗺', '/assistant': '🤖', '/news': '📰', '/spots': '☕',
+  '/map': '🗺', '/courses': '📋', '/assistant': '🤖', '/news': '📰', '/spots': '☕',
   '/notes': '📚', '/schedule': '📅', '/events': '📣', '/game': '🎮', '/admin': '⚙',
 };
 
