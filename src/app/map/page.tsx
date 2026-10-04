@@ -61,7 +61,9 @@ function MapPageInner() {
         justifyContent: 'space-between',
         gap: 8,
       }}>
-        <span>نقشه پردیس</span>
+        <span style={{ fontSize: '15.5px' }}>
+          🎓 نقشه پردیس — <span style={{ fontWeight: 600, opacity: 0.9 }}>دانشگاه علم و صنعت ایران</span>
+        </span>
         <button
           onClick={() => setShowCampusImage(true)}
           style={{

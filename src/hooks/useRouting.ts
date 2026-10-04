@@ -1,8 +1,11 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { fetchRoute } from "@/services/routingService";
 import type { RoutingLocation } from "@/types/location";
 
 export type { RoutingLocation };
+
+export type RoutingMode = 'foot' | 'car';
+export type ModePreference = 'auto' | RoutingMode;
 
 export interface RoutingState {
   isActive: boolean;
@@ -14,7 +17,7 @@ export interface RoutingState {
   error: string | null;
   distance: string | null;
   duration: string | null;
-  mode: "foot" | "car";
+  mode: RoutingMode;               // حالتی که واقعاً برای آخرین مسیر استفاده شد
 }
 
 /** محدوده‌ی تقریبی پردیس دانشگاه — اگر هر دو نقطه داخل آن باشند مسیر پیاده حساب می‌شود */
@@ -30,8 +33,17 @@ function isInsideCampus(p: RoutingLocation): boolean {
   );
 }
 
-function routeMode(origin: RoutingLocation, destination: RoutingLocation): "foot" | "car" {
+function routeMode(origin: RoutingLocation, destination: RoutingLocation): RoutingMode {
   return isInsideCampus(origin) && isInsideCampus(destination) ? "foot" : "car";
+}
+
+function resolveMode(
+  preference: ModePreference,
+  origin: RoutingLocation,
+  destination: RoutingLocation
+): RoutingMode {
+  if (preference === "auto") return routeMode(origin, destination);
+  return preference;
 }
 
 const INITIAL_STATE: RoutingState = {
@@ -76,10 +88,17 @@ export function useRouting() {
     setState(next);
   }, []);
 
+  // ── انتخاب حالت مسیریابی: خودکار (پیاده داخل پردیس)، پیاده یا خودرو ──
+  const [preferredMode, setPreferredMode] = useState<ModePreference>('auto');
+  const preferredModeRef = useRef(preferredMode);
+  useEffect(() => {
+    preferredModeRef.current = preferredMode;
+  }, [preferredMode]);
+
   // شروع دریافت مسیر — هر درخواست قبلی را قطع می‌کند تا پاسخ قدیمی
   // جای پاسخ جدید را نگیرد
   const startFetch = useCallback(
-    (origin: RoutingLocation, destination: RoutingLocation, mode: "foot" | "car") => {
+    (origin: RoutingLocation, destination: RoutingLocation, mode: RoutingMode) => {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -129,9 +148,9 @@ export function useRouting() {
           duration: null,
         };
         apply(next);
-        // هر دو انتخاب شدند؛ مسیر را بگیر. اگر هر دو نقطه داخل پردیس
-        // باشند مسیر پیاده‌روی محاسبه می‌شود
-        startFetch(origin, location, routeMode(origin, location));
+        // هر دو انتخاب شدند؛ مسیر را بگیر. حالت: اولویت کاربر — و در
+        // حالت خودکار، اگر هر دو نقطه داخل پردیس باشند پیاده‌روی
+        startFetch(origin, location, resolveMode(preferredModeRef.current, origin, location));
         return;
       }
 
@@ -170,7 +189,7 @@ export function useRouting() {
           distance: null,
           duration: null,
         });
-        if (destination) startFetch(myLocation, destination, routeMode(myLocation, destination));
+        if (destination) startFetch(myLocation, destination, resolveMode(preferredModeRef.current, myLocation, destination));
       },
       (err) => {
         const messages: Record<number, string> = {
@@ -198,5 +217,5 @@ export function useRouting() {
     apply(resetRoute({ ...stateRef.current, isActive: false }));
   }, [apply]);
 
-  return { state, toggleRouting, selectLocation, locateMe, clearRoute };
+  return { state, preferredMode, setPreferredMode, toggleRouting, selectLocation, locateMe, clearRoute };
 }
