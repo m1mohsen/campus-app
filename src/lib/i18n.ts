@@ -192,6 +192,12 @@ const D: Record<string, [string, string, string]> = {
   'news.loading': ['⏳ در حال دریافت...', '⏳ Loading...', '⏳ جارٍ التحميل...'],
   'news.empty': ['پستی برای نمایش نیست', 'No posts to show', 'لا توجد منشورات للعرض'],
   'news.viewInTelegram': ['مشاهده در تلگرام ↗', 'View on Telegram ↗', 'عرض على تيليجرام ↗'],
+  'news.members': ['عضو', 'members', 'عضو'],
+  'news.baleNoFeed': [
+    'بله فید عمومی برای پست‌ها ندارد — مشخصات زنده‌ی کانال‌ها اینجا نمایش داده می‌شود و پست‌ها را در خود بله ببینید.',
+    'Bale offers no public post feed — live channel info is shown here; see the posts inside Bale itself.',
+    '«بله» لا يوفر بثاً عاماً للمنشورات — تُعرض هنا بيانات القنوات المباشرة، وشاهد المنشورات داخل بله.',
+  ],
   'news.invalidChannel': ['شناسه کانال نامعتبر است', 'Invalid channel id', 'معرّف القناة غير صالح'],
   'news.noRoute': ['هیچ مسیری پیدا نشد', 'No route found', 'لم يتم العثور على مسير'],
 

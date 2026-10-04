@@ -1,6 +1,8 @@
 import { allLocations } from "@/data/classrooms";
 import { faqs } from "@/data/faq";
+import { locationName } from "@/data/locationNames";
 import type { Location } from "@/types/location";
+import type { Lang as LangCode } from "@/lib/i18n";
 
 export interface AssistantReply {
   text: string;
@@ -28,7 +30,8 @@ const ANSWER_NOT_FOUND =
 
 export function askAssistant(
   raw: string,
-  locations: Location[] = allLocations
+  locations: Location[] = allLocations,
+  lang: LangCode = "fa"
 ): AssistantReply {
   const q = normalize(raw.trim());
   if (!q) return { text: "سوالی بپرس! 😊", links: [] };
@@ -49,7 +52,7 @@ export function askAssistant(
     const scored = locations
       .map((loc) => {
         const hay = normalize(
-          `${loc.name} ${loc.nameEn ?? ""} ${loc.description ?? ""} ${(loc.tags ?? []).join(" ")}`
+          `${locationName(loc, lang)} ${loc.name} ${loc.nameEn ?? ""} ${loc.description ?? ""} ${(loc.tags ?? []).join(" ")}`
         );
         let score = 0;
         for (const t of tokens) if (hay.includes(t)) score++;
@@ -63,7 +66,7 @@ export function askAssistant(
       const lines = scored.map(({ loc }) => {
         const floor = loc.floor !== undefined ? ` (طبقه ${loc.floor})` : "";
         const desc = loc.description && loc.description !== loc.name ? ` — ${loc.description}` : "";
-        return `• ${loc.name}${floor}${desc}`;
+        return `• ${locationName(loc, lang)}${floor}${desc}`;
       });
       return {
         text: `این‌ها را پیدا کردم:\n${lines.join("\n")}\n\nبرای دیدن روی نقشه و مسیریابی کلیک کن:`,

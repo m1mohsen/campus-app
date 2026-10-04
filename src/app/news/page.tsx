@@ -5,6 +5,12 @@ import PageHeader from '@/components/PageHeader';
 import { useLang } from '@/components/LangProvider';
 import { telegramChannels, seedPosts, baleChannels, TelegramChannel } from '@/data/channels';
 
+interface BaleInfo {
+  title: string;
+  description: string | null;
+  members: number | null;
+}
+
 interface Post {
   date: string | null;
   text: string;
@@ -32,6 +38,34 @@ function formatDate(iso: string | null): string {
 export default function NewsPage() {
   const { t } = useLang();
   const [selected, setSelected] = useState<string>('iust_ac');
+  const [baleInfo, setBaleInfo] = useState<Record<string, BaleInfo>>({});
+
+  // دیتای زنده‌ی کانال‌های بله (عنوان/توضیح/اعضا)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      for (const ch of baleChannels) {
+        try {
+          const res = await fetch(`/api/bale-feed?channel=${ch.id}`);
+          const data = await res.json();
+          if (cancelled) return;
+          if (data.ok) {
+            setBaleInfo((prev) => ({
+              ...prev,
+              [ch.id]: {
+                title: data.title,
+                description: data.description,
+                members: data.members,
+              },
+            }));
+          }
+        } catch {
+          /* کارت با دیتای استاتیک می‌ماند */
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [live, setLive] = useState<boolean | null>(null); // null = هنوز معلوم نیست
@@ -125,33 +159,49 @@ export default function NewsPage() {
         <h2 style={{ fontSize: 14, fontWeight: 800, margin: '4px 0 8px', color: 'var(--text)' }}>
           {t('news.baleHeading')}
         </h2>
+        <p style={{ fontSize: 11.5, color: 'var(--text-3)', marginBottom: 10, lineHeight: 1.9 }}>
+          ℹ {t('news.baleNoFeed')}
+        </p>
         <div style={{ display: 'grid', gap: 8, marginBottom: 18 }}>
-          {baleChannels.map((ch) => (
-            <a
-              key={ch.id}
-              href={`https://ble.ir/${ch.id}`}
-              target="_blank"
-              rel="noopener"
-              className="card card-hover"
-              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px' }}
-            >
-              <span style={{
-                width: 38, height: 38, borderRadius: 12, flexShrink: 0,
-                background: 'linear-gradient(135deg, #0e7490, #22d3ee)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 17,
-              }}>
-                💠
-              </span>
-              <span style={{ flex: 1 }}>
-                <span style={{ display: 'block', fontWeight: 700, fontSize: 14 }}>{ch.title}</span>
-                <span style={{ display: 'block', fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>
-                  {ch.description}
+          {baleChannels.map((ch) => {
+            const info = baleInfo[ch.id];
+            return (
+              <a
+                key={ch.id}
+                href={`https://ble.ir/${ch.id}`}
+                target="_blank"
+                rel="noopener"
+                className="card card-hover"
+                style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px' }}
+              >
+                <span style={{
+                  width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+                  background: 'linear-gradient(135deg, #0e7490, #22d3ee)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 18,
+                }}>
+                  💠
                 </span>
-              </span>
-              <span style={{ fontSize: 16, color: 'var(--text-3)' }}>↗</span>
-            </a>
-          ))}
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontWeight: 700, fontSize: 14 }}>
+                    {info?.title ?? ch.title}
+                  </span>
+                  <span style={{
+                    display: 'block', fontSize: 12, color: 'var(--text-2)', marginTop: 3,
+                    lineHeight: 1.8, whiteSpace: 'pre-line',
+                  }}>
+                    {info?.description ?? ch.description}
+                  </span>
+                  {info?.members != null && (
+                    <span style={{ display: 'inline-block', marginTop: 6, fontSize: 11.5, fontWeight: 700, color: '#0e7490' }}>
+                      👥 {info.members.toLocaleString('fa-IR')} {t('news.members')}
+                    </span>
+                  )}
+                </span>
+                <span style={{ fontSize: 16, color: 'var(--text-3)', alignSelf: 'center' }}>↗</span>
+              </a>
+            );
+          })}
         </div>
 
         <h2 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 8px', color: 'var(--text)' }}>

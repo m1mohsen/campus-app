@@ -11,6 +11,7 @@ import { Location, LocationCategory, RoutingLocation } from '@/types/location';
 import { useMergedLocations } from '@/hooks/useAdminData';
 import { useRouting, ModePreference } from '@/hooks/useRouting';
 import { useLang } from '@/components/LangProvider';
+import { locationName } from '@/data/locationNames';
 
 const CampusMap3D = dynamic(() => import('./CampusMap3D'), { ssr: false });
 
@@ -125,7 +126,7 @@ export default function CampusMap({
   searchQuery,
   focusId,
 }: CampusMapProps) {
-  const { t, dir } = useLang();
+  const { t, dir, lang } = useLang();
   const mapRef         = useRef<L.Map | null>(null);
   const containerRef   = useRef<HTMLDivElement>(null);
   // کلاستر: روی موبایل به‌جای ۱۵۰ پینِ تو‌در‌تو، خوشه‌های شمارش‌دار
@@ -164,9 +165,9 @@ export default function CampusMap({
       };
       selectLocation(rl);
     } else {
-      marker.bindPopup(buildPopupHtml(location, t)).openPopup();
+      marker.bindPopup(buildPopupHtml({ ...location, name: locationName(location, lang) }, t)).openPopup();
     }
-  }, [selectLocation, t]);
+  }, [selectLocation, t, lang]);
 
   /* ── راه‌اندازی نقشه ── */
   useEffect(() => {
@@ -210,11 +211,12 @@ export default function CampusMap({
     const q = searchQuery.toLowerCase();
     const matchesSearch =
       !q ||
+      locationName(loc, lang).toLowerCase().includes(q) ||
       loc.name.toLowerCase().includes(q) ||
       loc.nameEn?.toLowerCase().includes(q) ||
       loc.description?.toLowerCase().includes(q);
     return matchesCategory && matchesSearch;
-  }), [locations, selectedCategory, searchQuery]);
+  }), [locations, selectedCategory, searchQuery, lang]);
 
   /* ── مارکرهای مکان‌ها (فقط با تغییر فیلتر/جستجو بازسازی می‌شوند) ── */
   useEffect(() => {
@@ -225,12 +227,13 @@ export default function CampusMap({
     markersByIdRef.current.clear();
 
     filteredLocations.forEach((location) => {
+      const displayName = locationName(location, lang);
       const marker = L.marker(
         [location.lat, location.lng],
         { icon: makePinIcon(CATEGORY_COLORS[location.category], 30) }
       );
 
-      marker.bindTooltip(location.name, { direction: 'top', offset: [0, -30] });
+      marker.bindTooltip(displayName, { direction: 'top', offset: [0, -30] });
       marker.on('click', () => handleMarkerClick(location, marker));
 
       layer.addLayer(marker);
@@ -247,7 +250,7 @@ export default function CampusMap({
               id: location.id,
               lat: location.lat,
               lng: location.lng,
-              name: location.name,
+              name: displayName,
             });
           }, 550);
         };
@@ -264,12 +267,12 @@ export default function CampusMap({
             id: location.id,
             lat: location.lat,
             lng: location.lng,
-            name: location.name,
+            name: displayName,
           });
         });
       }
     });
-  }, [filteredLocations, handleMarkerClick, routeTo]);
+  }, [filteredLocations, handleMarkerClick, routeTo, lang]);
 
   /* ── فوکوس روی مکان درخواستی از URL ── */
   useEffect(() => {
@@ -281,8 +284,8 @@ export default function CampusMap({
 
     map.setView([location.lat, location.lng], 18);
     const marker = markersByIdRef.current.get(focusId);
-    if (marker) marker.bindPopup(buildPopupHtml(location, t)).openPopup();
-  }, [focusId, locations, filteredLocations, t]);
+    if (marker) marker.bindPopup(buildPopupHtml({ ...location, name: locationName(location, lang) }, t)).openPopup();
+  }, [focusId, locations, filteredLocations, t, lang]);
 
   /* ── مارکرهای مبدأ و مقصد ── */
   useEffect(() => {
@@ -519,7 +522,7 @@ export default function CampusMap({
       {/* نمای سه‌بعدی */}
       {show3D && (
         <CampusMap3D
-          locations={locations}
+          locations={locations.map((l) => ({ ...l, name: locationName(l, lang) }))}
           onClose={() => setShow3D(false)}
           onRouteTo={(loc) => { setShow3D(false); routeTo(loc); }}
         />

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import PageHeader from '@/components/PageHeader';
 import { useLang } from '@/components/LangProvider';
+import { locationName } from '@/data/locationNames';
 import { useMergedLocations } from '@/hooks/useAdminData';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { ensureNotificationPermission, notify } from '@/lib/notify';
@@ -38,7 +39,7 @@ const inputStyle: React.CSSProperties = {
 };
 
 export default function SchedulePage() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [tab, setTab] = useState<'classes' | 'exams'>('classes');
   const allLocations = useMergedLocations(); // مکان‌های پایه + اضافه‌های ادمین
   const [classes, setClasses] = useLocalStorage<ClassEntry[]>('myClasses', []);
@@ -204,7 +205,7 @@ export default function SchedulePage() {
               <select style={inputStyle} value={locationId} onChange={(e) => setLocationId(e.target.value === '' ? '' : Number(e.target.value))}>
                 <option value="">{t('sch.placeOptional')}</option>
                 {allLocations.map((l) => (
-                  <option key={l.id} value={l.id}>{l.name}</option>
+                  <option key={l.id} value={l.id}>{locationName(l, lang)}</option>
                 ))}
               </select>
             </div>

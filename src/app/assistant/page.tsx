@@ -23,7 +23,7 @@ const SUGGESTION_KEYS = [
 ];
 
 export default function AssistantPage() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'bot',
@@ -43,7 +43,7 @@ export default function AssistantPage() {
     const question = text.trim();
     if (!question) return;
 
-    const reply: AssistantReply = askAssistant(question, locations);
+    const reply: AssistantReply = askAssistant(question, locations, lang);
     setMessages((prev) => [
       ...prev,
       { role: 'user', text: question, links: [] },
