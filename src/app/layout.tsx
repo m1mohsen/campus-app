@@ -3,6 +3,7 @@ import { Vazirmatn } from "next/font/google";
 import "./globals.css";
 import NavBar from "@/components/NavBar";
 import PWARegister from "@/components/PWARegister";
+import { LangProvider } from "@/components/LangProvider";
 
 const vazir = Vazirmatn({
   variable: "--font-vazir",
@@ -33,9 +34,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="fa" dir="rtl" className={vazir.variable}>
       <body>
-        <NavBar />
-        {children}
-        <PWARegister />
+        <LangProvider>
+          <NavBar />
+          {children}
+          <PWARegister />
+        </LangProvider>
       </body>
     </html>
   );

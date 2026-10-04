@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { askAssistant, AssistantReply } from '@/lib/assistant';
 import { useMergedLocations } from '@/hooks/useAdminData';
+import { useLang } from '@/components/LangProvider';
 
 interface Message {
   role: 'user' | 'bot';
@@ -11,21 +12,22 @@ interface Message {
   links?: { label: string; href: string }[];
 }
 
-const SUGGESTIONS = [
-  'حذف و اضافه',
-  'سلف کجاست؟',
-  'دفتر استاد',
-  'ساعت کتابخانه',
-  'آرایشگاه',
-  'مترو',
-  'کلاس ۱۰۴ کامپیوتر',
+const SUGGESTION_KEYS = [
+  'sug.addDrop',
+  'sug.cafeteria',
+  'sug.profOffice',
+  'sug.library',
+  'sug.barber',
+  'sug.metro',
+  'sug.class',
 ];
 
 export default function AssistantPage() {
+  const { t } = useLang();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'bot',
-      text: 'سلام! من دستیار پردیس هستم 🤖\nسوالت را بپرس: کلاس، استاد، سلف، امور اداری یا مسیر رسیدن به دانشگاه.',
+      text: t('bot.welcome'),
       links: [],
     },
   ]);
@@ -65,7 +67,7 @@ export default function AssistantPage() {
         color: '#fff',
         fontWeight: 700,
       }}>
-        🤖 دستیار پردیس
+        {t('bot.title')}
       </div>
 
       {/* پیشنهادهای سریع */}
@@ -78,10 +80,10 @@ export default function AssistantPage() {
         background: 'var(--card)',
         borderBottom: '1px solid var(--border)',
       }}>
-        {SUGGESTIONS.map((s) => (
+        {SUGGESTION_KEYS.map((k) => (
           <button
-            key={s}
-            onClick={() => send(s)}
+            key={k}
+            onClick={() => send(t(k))}
             style={{
               flexShrink: 0,
               padding: '6px 12px',
@@ -93,7 +95,7 @@ export default function AssistantPage() {
               cursor: 'pointer',
             }}
           >
-            {s}
+            {t(k)}
           </button>
         ))}
       </div>
@@ -184,7 +186,7 @@ export default function AssistantPage() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="سوالت را بنویس..."
+          placeholder={t("bot.placeholder")}
           style={{
             flex: 1,
             padding: '10px 14px',
@@ -206,7 +208,7 @@ export default function AssistantPage() {
             cursor: 'pointer',
           }}
         >
-          ارسال
+          {t('bot.send')}
         </button>
       </form>
     </main>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import PageHeader from '@/components/PageHeader';
+import { useLang } from '@/components/LangProvider';
 import { EVENT_CATEGORIES, EventCategory } from '@/data/events';
 import { useMergedEvents } from '@/hooks/useAdminData';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -24,7 +25,17 @@ function formatFaDate(iso: string): string {
   }
 }
 
+function catKey(c: EventCategory): string {
+  switch (c) {
+    case 'علمی': return 'ev.cat.scientific';
+    case 'فرهنگی': return 'ev.cat.cultural';
+    case 'ورزشی': return 'ev.cat.sports';
+    case 'تشکل': return 'ev.cat.club';
+  }
+}
+
 export default function EventsPage() {
+  const { t } = useLang();
   const [filter, setFilter] = useState<EventCategory | 'all'>('all');
   const [reminders, setReminders] = useLocalStorage<number[]>('eventReminders', []);
   const events = useMergedEvents(); // رویدادهای پایه + اضافه‌های ادمین
@@ -54,8 +65,8 @@ export default function EventsPage() {
     <>
       <PageHeader
         icon="📣"
-        title="رویدادهای دانشگاه"
-        subtitle="سمینارها، انجمن‌های علمی، برنامه‌های فرهنگی و ورزشی — از کانال‌های رسمی و دانشجویی"
+        title={t('ev.title')}
+        subtitle={t('ev.subtitle')}
         color="teal"
       />
       <main dir="rtl" style={{ maxWidth: 640, margin: '0 auto', padding: '16px 16px 48px' }}>
@@ -78,9 +89,9 @@ export default function EventsPage() {
       >
         <div style={{ fontSize: 30 }}>🎭</div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 800, fontSize: 15 }}>ثبت‌نام رویدادها در نگارستان</div>
+          <div style={{ fontWeight: 800, fontSize: 15 }}>{t('ev.negarstanTitle')}</div>
           <div style={{ fontSize: 12.5, opacity: 0.9, marginTop: 3, lineHeight: 1.8 }}>
-            سامانه رسمی فعالیت‌های فرهنگی و دانشجویی دانشگاه — ثبت‌نام، مجوز و جزئیات رویدادها
+            {t('ev.negarstanDesc')}
           </div>
         </div>
         <div style={{ fontSize: 18 }}>↗</div>
@@ -91,11 +102,11 @@ export default function EventsPage() {
           onClick={() => setFilter('all')}
           style={chipStyle(filter === 'all')}
         >
-          همه
+          {t('filter.all')}
         </button>
         {EVENT_CATEGORIES.map((c) => (
           <button key={c} onClick={() => setFilter(c)} style={chipStyle(filter === c)}>
-            {c}
+            {t(catKey(c))}
           </button>
         ))}
       </div>
@@ -124,10 +135,10 @@ export default function EventsPage() {
                     background: CATEGORY_COLORS[ev.category],
                   }}
                 >
-                  {ev.category}
+                  {t(catKey(ev.category))}
                 </span>
                 <span style={{ fontSize: 13, color: '#64748b' }}>
-                  {formatFaDate(ev.date)} — ساعت {ev.time}
+                  {formatFaDate(ev.date)} — {t('ev.at')} {ev.time}
                 </span>
               </div>
 
@@ -137,7 +148,7 @@ export default function EventsPage() {
               </div>
               <div style={{ marginTop: 6, fontSize: 13 }}>📍 {ev.place}</div>
               {ev.source && (
-                <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-3)' }}>منبع: {ev.source}</div>
+                <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-3)' }}>{t('ev.source')} {ev.source}</div>
               )}
 
               <button
@@ -158,14 +169,14 @@ export default function EventsPage() {
                   cursor: 'pointer',
                 }}
               >
-                {hasReminder ? '🔔 یادآور فعال' : '🔕 یادآوری کن'}
+                {hasReminder ? t('ev.remindOn') : t('ev.remindOff')}
               </button>
             </div>
           );
         })}
         {list.length === 0 && (
           <p style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', padding: 24 }}>
-            رویدادی در این دسته ثبت نشده است.
+            {t('ev.none')}
           </p>
         )}
       </div>

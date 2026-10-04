@@ -2,25 +2,33 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useLang } from '@/components/LangProvider';
+import { LANGS, type Lang } from '@/lib/i18n';
 
 const LINKS = [
-  { href: '/map',       label: 'نقشه',     icon: '🗺' },
-  { href: '/assistant', label: 'دستیار',   icon: '🤖' },
-  { href: '/news',      label: 'اخبار',    icon: '📰' },
-  { href: '/spots',     label: 'پاتوق‌ها',  icon: '☕' },
-  { href: '/notes',     label: 'جزوه‌ها',   icon: '📚' },
-  { href: '/schedule',  label: 'برنامه من', icon: '📅' },
-  { href: '/events',    label: 'رویدادها',  icon: '📣' },
-  { href: '/game',      label: 'بازی',     icon: '🎮' },
-  { href: '/admin',     label: 'مدیریت',   icon: '⚙' },
+  { href: '/map',       key: 'nav.map' },
+  { href: '/assistant', key: 'nav.assistant' },
+  { href: '/news',      key: 'nav.news' },
+  { href: '/spots',     key: 'nav.spots' },
+  { href: '/notes',     key: 'nav.notes' },
+  { href: '/schedule',  key: 'nav.schedule' },
+  { href: '/events',    key: 'nav.events' },
+  { href: '/game',      key: 'nav.game' },
+  { href: '/admin',     key: 'nav.admin' },
 ];
+
+const ICONS: Record<string, string> = {
+  '/map': '🗺', '/assistant': '🤖', '/news': '📰', '/spots': '☕',
+  '/notes': '📚', '/schedule': '📅', '/events': '📣', '/game': '🎮', '/admin': '⚙',
+};
 
 export default function NavBar() {
   const pathname = usePathname();
+  const { lang, setLang, t } = useLang();
 
   return (
     <nav
-      dir="rtl"
+      dir={lang === 'en' ? 'ltr' : 'rtl'}
       style={{
         position: 'sticky',
         top: 0,
@@ -45,7 +53,7 @@ export default function NavBar() {
           gap: 6,
           fontWeight: 800,
           fontSize: 16,
-          marginLeft: 10,
+          marginInlineEnd: 10,
           flexShrink: 0,
         }}
       >
@@ -64,7 +72,7 @@ export default function NavBar() {
         پردیس
       </Link>
 
-      {LINKS.map(({ href, label, icon }) => {
+      {LINKS.map(({ href, key }) => {
         const active = pathname.startsWith(href);
         return (
           <Link
@@ -82,10 +90,44 @@ export default function NavBar() {
               transition: 'all 150ms',
             }}
           >
-            {icon} {label}
+            {ICONS[href]} {t(key)}
           </Link>
         );
       })}
+
+      {/* سوییچر زبان */}
+      <span
+        dir="ltr"
+        style={{
+          flexShrink: 0,
+          display: 'inline-flex',
+          gap: 2,
+          marginInlineStart: 8,
+          background: 'rgba(255,255,255,0.1)',
+          borderRadius: 999,
+          padding: 2,
+        }}
+      >
+        {LANGS.map(({ code, label }) => (
+          <button
+            key={code}
+            onClick={() => setLang(code as Lang)}
+            style={{
+              padding: '4px 9px',
+              borderRadius: 999,
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 12,
+              fontWeight: 700,
+              background: lang === code ? '#fff' : 'transparent',
+              color: lang === code ? '#1e40af' : 'rgba(255,255,255,0.85)',
+            }}
+            aria-label={`language: ${code}`}
+          >
+            {label}
+          </button>
+        ))}
+      </span>
     </nav>
   );
 }

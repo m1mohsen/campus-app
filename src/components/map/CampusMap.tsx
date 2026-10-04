@@ -10,6 +10,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { Location, LocationCategory, RoutingLocation } from '@/types/location';
 import { useMergedLocations } from '@/hooks/useAdminData';
 import { useRouting, ModePreference } from '@/hooks/useRouting';
+import { useLang } from '@/components/LangProvider';
 
 const CampusMap3D = dynamic(() => import('./CampusMap3D'), { ssr: false });
 
@@ -56,10 +57,13 @@ function makePinIcon(color: string, size: number, halo = false): L.DivIcon {
 
 /* ── محتوای popup مکان (دیتا استاتیک است؛ اگر بعداً از ورودی کاربر
       بیاید باید escape شود) ── */
-function buildPopupHtml(location: Location): string {
+function buildPopupHtml(
+  location: Location,
+  t: (key: string, vars?: Record<string, string | number>) => string
+): string {
   const floorLine =
     location.floor !== undefined
-      ? `<p style="margin:4px 0;font-size:13px;color:#555;">طبقه: ${location.floor}</p>`
+      ? `<p style="margin:4px 0;font-size:13px;color:#555;">${t('popup.floor', { n: location.floor })}</p>`
       : '';
 
   const openLine =
@@ -72,7 +76,7 @@ function buildPopupHtml(location: Location): string {
             font-size:12px;
             background-color:${location.isOpen ? '#22c55e' : '#ef4444'};
             color:white;
-          ">${location.isOpen ? 'باز' : 'بسته'}</span>
+          ">${location.isOpen ? t('popup.open') : t('popup.closed')}</span>
          </p>`
       : '';
 
@@ -121,6 +125,7 @@ export default function CampusMap({
   searchQuery,
   focusId,
 }: CampusMapProps) {
+  const { t, dir } = useLang();
   const mapRef         = useRef<L.Map | null>(null);
   const containerRef   = useRef<HTMLDivElement>(null);
   // کلاستر: روی موبایل به‌جای ۱۵۰ پینِ تو‌در‌تو، خوشه‌های شمارش‌دار
@@ -159,9 +164,9 @@ export default function CampusMap({
       };
       selectLocation(rl);
     } else {
-      marker.bindPopup(buildPopupHtml(location)).openPopup();
+      marker.bindPopup(buildPopupHtml(location, t)).openPopup();
     }
-  }, [selectLocation]);
+  }, [selectLocation, t]);
 
   /* ── راه‌اندازی نقشه ── */
   useEffect(() => {
@@ -276,8 +281,8 @@ export default function CampusMap({
 
     map.setView([location.lat, location.lng], 18);
     const marker = markersByIdRef.current.get(focusId);
-    if (marker) marker.bindPopup(buildPopupHtml(location)).openPopup();
-  }, [focusId, locations, filteredLocations]);
+    if (marker) marker.bindPopup(buildPopupHtml(location, t)).openPopup();
+  }, [focusId, locations, filteredLocations, t]);
 
   /* ── مارکرهای مبدأ و مقصد ── */
   useEffect(() => {
@@ -347,7 +352,7 @@ export default function CampusMap({
       {!show3D && (
         <button
           onClick={routing.isActive ? clearRoute : toggleRouting}
-          aria-label={routing.isActive ? 'لغو مسیریابی' : 'شروع مسیریابی'}
+          aria-label={routing.isActive ? t('route.cancelAria') : t('route.startAria')}
           style={{
             ...buttonStyle,
             top:             '12px',
@@ -356,7 +361,7 @@ export default function CampusMap({
               : 'linear-gradient(135deg, #1e40af, #3b82f6)',
           }}
         >
-          {routing.isActive ? '✕ لغو مسیریابی' : '🧭 مسیریابی'}
+          {routing.isActive ? t('route.cancel') : t('route.btn')}
         </button>
       )}
 
@@ -365,7 +370,7 @@ export default function CampusMap({
         <button
           onClick={locateMe}
           disabled={routing.locating}
-          aria-label="استفاده از موقعیت من به‌عنوان مبدأ"
+          aria-label={t('route.myLocation')}
           style={{
             ...buttonStyle,
             top:             '56px',
@@ -375,38 +380,41 @@ export default function CampusMap({
             cursor:          routing.locating ? 'wait' : 'pointer',
           }}
         >
-          {routing.locating ? '⏳ در حال دریافت موقعیت...' : '📍 موقعیت من'}
+          {routing.locating ? t('route.locating') : t('route.myLocation')}
         </button>
       )}
 
       {/* دکمه نمای سه‌بعدی */}
-      <button
-        onClick={() => setShow3D((s) => !s)}
-        aria-label={show3D ? 'بازگشت به نقشه دوبعدی' : 'نمای سه‌بعدی پردیس'}
-        title={show3D ? 'بازگشت به نقشه دوبعدی' : 'نمای سه‌بعدی ساختمان‌های دانشگاه'}
-        style={{
-          position:        'absolute',
-          top:             '84px',
-          left:            '12px',
-          zIndex:          1000,
-          width:           '40px',
-          height:          '40px',
-          borderRadius:    '12px',
-          border:          'none',
-          cursor:          'pointer',
-          fontSize:        '19px',
-          background:      show3D ? 'rgba(15,23,42,0.85)' : glass,
-          boxShadow:       '0 4px 14px rgba(15,23,42,0.2)',
-          backdropFilter:  'blur(8px)',
-          transition:      'transform 0.15s',
-        }}
-      >
-        {show3D ? '🗺' : '🏙'}
-      </button>
+      {!show3D && (
+        <button
+          onClick={() => setShow3D((s) => !s)}
+          aria-label={t('three.toggleAria')}
+          title={t('three.toggleTitle')}
+          style={{
+            position:        'absolute',
+            top:             '84px',
+            left:            '12px',
+            zIndex:          1000,
+            width:           '40px',
+            height:          '40px',
+            borderRadius:    '12px',
+            border:          'none',
+            cursor:          'pointer',
+            fontSize:        '19px',
+            background:      glass,
+            boxShadow:       '0 4px 14px rgba(15,23,42,0.2)',
+            backdropFilter:  'blur(8px)',
+            transition:      'transform 0.15s',
+          }}
+        >
+          🏙
+        </button>
+      )}
 
       {/* پنل راهنمای مسیریابی */}
       {routing.isActive && !show3D && (
         <div
+          dir={dir}
           style={{
             position:        'absolute',
             top:             routing.origin || routing.error || routing.locating ? '100px' : '56px',
@@ -420,16 +428,15 @@ export default function CampusMap({
             backdropFilter:  'blur(10px)',
             fontFamily:      'sans-serif',
             fontSize:        '13px',
-            direction:       'rtl',
             minWidth:        '215px',
           }}
         >
           {/* انتخابگر حالت مسیریابی */}
           <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
             {([
-              { value: 'auto', label: '⚡ خودکار' },
-              { value: 'foot', label: '🚶 پیاده' },
-              { value: 'car',  label: '🚗 خودرو' },
+              { value: 'auto', label: t('route.auto') },
+              { value: 'foot', label: t('route.foot') },
+              { value: 'car',  label: t('route.car') },
             ] as { value: ModePreference; label: string }[]).map((m) => (
               <button
                 key={m.value}
@@ -453,11 +460,11 @@ export default function CampusMap({
           </div>
 
           {routing.locating && (
-            <p style={{ margin: 0, color: '#374151' }}>⏳ در حال دریافت موقعیت شما...</p>
+            <p style={{ margin: 0, color: '#374151' }}>{t('route.locating')}</p>
           )}
 
           {!routing.locating && !routing.origin && (
-            <p style={{ margin: 0, color: '#374151' }}>📍 روی مبدأ کلیک کنید یا «موقعیت من» را بزنید</p>
+            <p style={{ margin: 0, color: '#374151' }}>{t('route.pickOrigin')}</p>
           )}
 
           {routing.origin && !routing.destination && (
@@ -465,12 +472,12 @@ export default function CampusMap({
               <p style={{ margin: '0 0 4px 0', color: '#374151' }}>
                 🟢 <strong>{routing.origin.name}</strong>
               </p>
-              <p style={{ margin: 0, color: '#6b7280' }}>حالا روی مقصد کلیک کنید</p>
+              <p style={{ margin: 0, color: '#6b7280' }}>{t('route.originSet')}</p>
             </div>
           )}
 
           {routing.origin && routing.destination && !routing.distance && !routing.error && (
-            <p style={{ margin: 0, color: '#374151' }}>⏳ در حال دریافت مسیر...</p>
+            <p style={{ margin: 0, color: '#374151' }}>{t('route.getting')}</p>
           )}
 
           {routing.error && (
@@ -480,13 +487,11 @@ export default function CampusMap({
           {routing.distance && routing.duration && (
             <div>
               <p style={{ margin: '0 0 4px 0', color: '#16a34a', fontWeight: 700 }}>
-                {routing.mode === 'foot'
-                  ? '🚶 مسیر پیاده‌روی داخل پردیس'
-                  : '🚗 مسیر خودرو'}
+                {routing.mode === 'foot' ? t('route.foundFoot') : t('route.foundCar')}
               </p>
-              <p style={{ margin: 0,           color: '#374151' }}>📏 {routing.distance}</p>
+              <p style={{ margin: 0, color: '#374151' }}>📏 {routing.distance}</p>
               <p style={{ margin: '2px 0 0 0', color: '#374151' }}>
-                ⏱ {routing.duration}{routing.mode === 'foot' ? ' پیاده‌روی' : ''}
+                ⏱ {routing.duration}{routing.mode === 'foot' ? ` ${t('route.walkingSuffix')}` : ''}
               </p>
             </div>
           )}
@@ -501,19 +506,23 @@ export default function CampusMap({
       />
 
       {/* راهنمای مسیریابی سریع */}
-      <div style={{
+      <div dir={dir} style={{
         position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)',
         zIndex: 1000, background: 'rgba(15,23,42,0.78)', color: '#fff',
         padding: '6px 14px', borderRadius: 999, fontSize: 11.5,
         backdropFilter: 'blur(6px)', whiteSpace: 'nowrap', pointerEvents: 'none',
         maxWidth: '94%', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>
-        👆 نگه‌داشتن روی هر مکان (یا راست‌کلیک) = مسیریابی سریع تا آنجا
+        {t('map.holdHint')}
       </div>
 
       {/* نمای سه‌بعدی */}
       {show3D && (
-        <CampusMap3D locations={locations} onClose={() => setShow3D(false)} />
+        <CampusMap3D
+          locations={locations}
+          onClose={() => setShow3D(false)}
+          onRouteTo={(loc) => { setShow3D(false); routeTo(loc); }}
+        />
       )}
     </div>
   );

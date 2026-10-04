@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useLang } from '@/components/LangProvider';
 
 /**
  * نظرات دانشجویی درباره اساتید کارشناسی — برای انتخاب واحد آگاهانه.
@@ -52,6 +53,7 @@ function Stars({ value, onChange }: { value: number; onChange?: (v: number) => v
 }
 
 export default function ProfessorReviews() {
+  const { t } = useLang();
   const [reviews, setReviews] = useLocalStorage<Record<string, ProfReview[]>>(
     'profReviews',
     {}
@@ -78,7 +80,7 @@ export default function ProfessorReviews() {
   function submit() {
     const name = pName.trim();
     if (!name || !pCourse.trim() || pRating === 0) {
-      setPError('نام استاد، نام درس و امتیاز الزامی است');
+      setPError(t('prof.errRequired'));
       return;
     }
     const review: ProfReview = {
@@ -100,44 +102,43 @@ export default function ProfessorReviews() {
   return (
     <>
       <p style={{ fontSize: 12.5, color: 'var(--text-2)', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '10px 14px', lineHeight: 2, marginBottom: 14 }}>
-        🎯 تجربه‌ی واقعی بچه‌ها از اساتید — قبل از انتخاب واحد چک کنید و نظر خودتان را ثبت کنید.
-        (فعلاً روی همین دستگاه ذخیره می‌شود؛ نسخه‌ی مشترک با دیتابیس می‌آید)
+        {t('prof.demoNotice')}
       </p>
 
       {/* ── فرم ثبت نظر ── */}
       <div className="card" style={{ padding: 14, display: 'grid', gap: 10, marginBottom: 20 }}>
-        <div style={{ fontWeight: 700, fontSize: 14 }}>➕ نظرت را درباره‌ی یک استاد ثبت کن</div>
+        <div style={{ fontWeight: 700, fontSize: 14 }}>{t('prof.addTitle')}</div>
         <div className="form-grid-2">
           <div>
-            <label style={labelStyle}>نام استاد *</label>
-            <input style={inputStyle} placeholder="مثلاً دکتر احمدی" value={pName} onChange={(e) => setPName(e.target.value)} />
+            <label style={labelStyle}>{t('prof.name')}</label>
+            <input style={inputStyle} placeholder={t('prof.namePh')} value={pName} onChange={(e) => setPName(e.target.value)} />
           </div>
           <div>
-            <label style={labelStyle}>درس *</label>
+            <label style={labelStyle}>{t('prof.course')}</label>
             <input style={inputStyle} placeholder="مثلاً ساختمان داده" value={pCourse} onChange={(e) => setPCourse(e.target.value)} />
           </div>
         </div>
         <div>
-          <label style={labelStyle}>امتیاز کلی *</label>
+          <label style={labelStyle}>{t('prof.rating')}</label>
           <div style={{ marginTop: 2 }}>
             <Stars value={pRating} onChange={setPRating} />
           </div>
         </div>
         <div className="form-grid-2">
           <div>
-            <label style={labelStyle}>ترم (اختیاری)</label>
-            <input style={inputStyle} placeholder="مثلاً پاییز ۱۴۰۵" value={pTerm} onChange={(e) => setPTerm(e.target.value)} />
+            <label style={labelStyle}>{t('prof.term')}</label>
+            <input style={inputStyle} placeholder={t('prof.termPh')} value={pTerm} onChange={(e) => setPTerm(e.target.value)} />
           </div>
         </div>
         <div>
-          <label style={labelStyle}>تجربه‌ات (شیوه‌ی تدریس، طرح درس، نمره‌دهی...)</label>
+          <label style={labelStyle}>{t('prof.text')}</label>
           <textarea rows={3} style={{ ...inputStyle, resize: 'vertical' }} value={pText} onChange={(e) => setPText(e.target.value)} />
         </div>
         {pError && <p style={{ color: 'var(--danger)', fontSize: 12.5 }}>{pError}</p>}
         <p style={{ fontSize: 11.5, color: 'var(--text-3)', lineHeight: 1.8 }}>
-          ⚠ فقط تجربه‌ی تحصیلی بنویسید؛ نظرات توهین‌آمیز در نسخه‌ی عمومی تایید نمی‌شود.
+          {t('prof.warn')}
         </p>
-        <button onClick={submit} className="btn btn-primary">ثبت نظر</button>
+        <button onClick={submit} className="btn btn-primary">{t('prof.submit')}</button>
       </div>
 
       {/* ── لیست اساتید ── */}
@@ -149,7 +150,7 @@ export default function ProfessorReviews() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Stars value={Math.round(avg)} />
                 <strong style={{ fontSize: 13, color: '#f59e0b' }}>{avg.toFixed(1)}</strong>
-                <span style={{ fontSize: 11.5, color: 'var(--text-3)' }}>({list.length} نظر)</span>
+                <span style={{ fontSize: 11.5, color: 'var(--text-3)' }}>{t('prof.reviewsCount', { n: list.length })}</span>
               </div>
             </div>
             {list.map((r) => (
@@ -169,7 +170,7 @@ export default function ProfessorReviews() {
         ))}
         {professors.length === 0 && (
           <p style={{ color: 'var(--text-3)', fontSize: 13, textAlign: 'center', padding: 24 }}>
-            هنوز نظری ثبت نشده — اولین نفر باش!
+            {t('prof.empty')}
           </p>
         )}
       </div>

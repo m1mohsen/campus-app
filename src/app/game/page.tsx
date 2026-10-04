@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import PageHeader from '@/components/PageHeader';
+import { useLang } from '@/components/LangProvider';
 import { huntSpots, HUNT_PREFIX } from '@/data/hunt';
 import { quizQuestions } from '@/data/quiz';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -24,6 +25,7 @@ const MOCK_LEADERS = [
 ];
 
 export default function GamePage() {
+  const { t } = useLang();
   // ── اسکونجر هانت ──
   const [found, setFound] = useLocalStorage<string[]>('huntFound', []);
   const [codeInput, setCodeInput] = useState('');
@@ -49,7 +51,7 @@ export default function GamePage() {
   async function startScan() {
     const w = window as unknown as { BarcodeDetector?: new (opts?: { formats?: string[] }) => { detect: (src: HTMLVideoElement) => Promise<{ rawValue: string }[]> } };
     if (!('BarcodeDetector' in w)) {
-      setHuntMsg('مرورگر شما اسکن دوربین ندارد — کد را دستی وارد کنید (فقط برای QR باید جایزه بگیرید 😄)');
+      setHuntMsg(t('game.noScanner'));
       return;
     }
     try {
@@ -77,7 +79,7 @@ export default function GamePage() {
         stream.getTracks().forEach((t) => t.stop());
       };
     } catch {
-      setHuntMsg('دسترسی به دوربین داده نشد.');
+      setHuntMsg(t('game.camDenied'));
       setScanning(false);
     }
   }
@@ -86,7 +88,7 @@ export default function GamePage() {
     const code = raw.trim().toUpperCase().replace(HUNT_PREFIX, '');
     const spot = huntSpots.find((s) => s.code === code);
     if (!spot) {
-      setHuntMsg('این کد مربوط به هیچ نقطه‌ای نیست! راهنمایی: ' + (huntSpots.find((s) => !found.includes(s.id))?.hint ?? ''));
+      setHuntMsg(t('game.badCode') + ' ' + (huntSpots.find((s) => !found.includes(s.id))?.hint ?? '') + (huntSpots.find((s) => !found.includes(s.id))?.hint ?? ''));
       return;
     }
     if (found.includes(spot.id)) {
@@ -95,7 +97,7 @@ export default function GamePage() {
     }
     const next = [...found, spot.id];
     setFound(next);
-    setHuntMsg(`🎉 آفرین! «${spot.name}» را پیدا کردی. جایزه: ${spot.reward}`);
+    setHuntMsg(`🎉 ${t('game.congrats')} «${spot.name}» ${t('game.foundPrefix')} ${spot.reward}`);
     ensureNotificationPermission().then((ok) => {
       if (ok) notify('🎉 شکار موفق!', `${spot.name} — ${next.length}/${huntSpots.length}`);
     });
@@ -129,8 +131,9 @@ export default function GamePage() {
     }, 900);
   }
 
+  const userLabel = t('game.lbYou');
   const userScore = found.length * 10 + quizBest * 5;
-  const leaderboard = [...MOCK_LEADERS, { name: 'شما ⭐', score: userScore }].sort((a, b) => b.score - a.score);
+  const leaderboard = [...MOCK_LEADERS, { name: userLabel, score: userScore }].sort((a, b) => b.score - a.score);
 
   // ── چت دانشجوها ──
   // نسخه‌ی نمایشی: پیام‌ها بین همه‌ی تب‌های باز همین دستگاه همگام می‌شوند
@@ -173,15 +176,15 @@ export default function GamePage() {
     <>
       <PageHeader
         icon="🎮"
-        title="شکار گنج و بازی"
-        subtitle="QR های مخفی پردیس را پیدا کن، در کوییز رقابت کن و بالا بیا!"
+        title={t("game.title")}
+        subtitle="{t('game.subtitle')}"
         color="violet"
       />
       <main dir="rtl" style={{ maxWidth: 640, margin: '0 auto', padding: '16px 16px 48px' }}>
       {/* ═══ اسکونجر هانت ═══ */}
       <section style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700 }}>🧭 شکار گنج با QR</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700 }}>{t('game.huntTitle')}</h2>
           <span style={{ fontSize: 13, fontWeight: 700, color: '#16a34a' }}>{found.length} از {huntSpots.length}</span>
         </div>
 
@@ -190,7 +193,7 @@ export default function GamePage() {
         </div>
 
         <p style={{ marginTop: 10, fontSize: 13, color: '#64748b', lineHeight: 1.9 }}>
-          دور پردیس بگرد، QR کدهای مخفی را پیدا کن و اسکن کن (یا کد را دستی وارد کن). جوایز اسپانسری از کافه‌های اطراف!
+          {t('game.huntDesc')}
         </p>
 
         {scanning && (
@@ -201,9 +204,9 @@ export default function GamePage() {
 
         <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
           {scanning ? (
-            <button onClick={stopScan} style={{ ...btnStyle, background: '#dc2626' }}>توقف دوربین</button>
+            <button onClick={stopScan} style={{ ...btnStyle, background: '#dc2626' }}>{t('game.stopCam')}</button>
           ) : (
-            <button onClick={startScan} style={btnStyle}>📷 اسکن QR</button>
+            <button onClick={startScan} style={btnStyle}>{t('game.scan')}</button>
           )}
         </div>
 
@@ -212,7 +215,7 @@ export default function GamePage() {
             value={codeInput}
             onChange={(e) => setCodeInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && submitCode()}
-            placeholder="یا کد را دستی وارد کن (مثلاً HUNT-KETAB)"
+            placeholder={t("game.codePh")}
             style={{
               flex: 1,
               padding: '8px 12px',
@@ -223,7 +226,7 @@ export default function GamePage() {
               textAlign: 'left',
             }}
           />
-          <button onClick={submitCode} style={{ ...btnStyle, background: '#475569' }}>ثبت کد</button>
+          <button onClick={submitCode} style={{ ...btnStyle, background: '#475569' }}>{t('game.submitCode')}</button>
         </div>
 
         {huntMsg && (
@@ -248,18 +251,18 @@ export default function GamePage() {
       {/* ═══ کوییز ═══ */}
       <section style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700 }}>🧠 کوییز پردیس</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700 }}>{t('game.quizTitle')}</h2>
           <span style={{ fontSize: 13, color: '#64748b' }}>رکورد شما: {quizBest}/{quizQuestions.length}</span>
         </div>
 
         {qIndex === null && (
-          <button onClick={startQuiz} style={{ ...btnStyle, marginTop: 12 }}>شروع کوییز</button>
+          <button onClick={startQuiz} style={{ ...btnStyle, marginTop: 12 }}>{t('game.quizStart')}</button>
         )}
 
         {qIndex !== null && qIndex < quizQuestions.length && (
           <div style={{ marginTop: 12 }}>
             <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.8 }}>
-              سوال {qIndex + 1} از {quizQuestions.length}: {quizQuestions[qIndex].question}
+              {t('game.quizOf', { i: qIndex + 1, n: quizQuestions.length })} {quizQuestions[qIndex].question}
             </div>
             <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
               {quizQuestions[qIndex].options.map((opt, i) => {
@@ -293,9 +296,9 @@ export default function GamePage() {
           <div style={{ marginTop: 12, textAlign: 'center' }}>
             <div style={{ fontSize: 32 }}>🎉</div>
             <div style={{ fontSize: 16, fontWeight: 700, marginTop: 8 }}>
-              امتیاز: {score} از {quizQuestions.length}
+              {t('game.quizScore', { s: score, n: quizQuestions.length })}
             </div>
-            <button onClick={startQuiz} style={{ ...btnStyle, marginTop: 12 }}>دوباره</button>
+            <button onClick={startQuiz} style={{ ...btnStyle, marginTop: 12 }}>{t('game.quizAgain')}</button>
           </div>
         )}
       </section>
@@ -303,7 +306,7 @@ export default function GamePage() {
       {/* ═══ چت دانشجوها ═══ */}
       <section style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700 }}>💬 گفتگوی دانشجوها</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700 }}>{t('game.chatTitle')}</h2>
           <span style={{ fontSize: 11, color: 'var(--text-3)' }}>نسخه نمایشی — همگام بین تب‌ها</span>
         </div>
 
@@ -323,7 +326,7 @@ export default function GamePage() {
         >
           {chat.length === 0 && (
             <p style={{ color: 'var(--text-3)', fontSize: 12.5, textAlign: 'center', margin: 'auto' }}>
-              اولین پیام را بفرست! 😊
+              {t('game.chatEmpty')}
             </p>
           )}
           {chat.map((m) => {
@@ -352,7 +355,7 @@ export default function GamePage() {
           <input
             value={chatName}
             onChange={(e) => setChatName(e.target.value)}
-            placeholder="اسمت (برای نمایش)"
+            placeholder={t("game.chatName")}
             style={{
               width: 130,
               padding: '8px 10px',
@@ -366,7 +369,7 @@ export default function GamePage() {
             value={chatText}
             onChange={(e) => setChatText(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && sendChat()}
-            placeholder="پیامت را بنویس..."
+            placeholder={t("game.chatPh")}
             style={{
               flex: 1,
               padding: '8px 12px',
@@ -375,19 +378,19 @@ export default function GamePage() {
               fontSize: 13,
             }}
           />
-          <button onClick={sendChat} style={{ ...btnStyle, padding: '8px 14px' }}>ارسال</button>
+          <button onClick={sendChat} style={{ ...btnStyle, padding: '8px 14px' }}>{t('game.chatSend')}</button>
         </div>
 
         <p style={{ marginTop: 8, fontSize: 11.5, color: 'var(--text-3)', lineHeight: 1.8 }}>
-          🔮 در نسخه‌ی دیتابیس‌دار، این چت بین همه‌ی دانشجوهای آنلاین زنده می‌شود (Supabase Realtime).
+          {t('game.chatFooter')}
         </p>
       </section>
 
       {/* ═══ لیدربورد ═══ */}
       <section style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700 }}>🏆 لیدربورد</h2>
+        <h2 style={{ fontSize: 16, fontWeight: 700 }}>{t('game.lbTitle')}</h2>
         <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-          امتیاز شما: هر نقطه‌ی شکار ۱۰ + هر جواب درست ۵ (در نسخه‌ی دیتابیس‌دار، رقابت واقعی بین همه است)
+          {t('game.lbExplain')}
         </p>
         <div style={{ marginTop: 12, display: 'grid', gap: 6 }}>
           {leaderboard.map((row, i) => (
@@ -399,8 +402,8 @@ export default function GamePage() {
                 gap: 10,
                 padding: '8px 12px',
                 borderRadius: 10,
-                background: row.name === 'شما ⭐' ? '#eef2ff' : '#f8fafc',
-                fontWeight: row.name === 'شما ⭐' ? 700 : 400,
+                background: row.name === userLabel ? '#eef2ff' : '#f8fafc',
+                fontWeight: row.name === userLabel ? 700 : 400,
                 fontSize: 14,
               }}
             >

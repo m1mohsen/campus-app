@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import PageHeader from '@/components/PageHeader';
+import { useLang } from '@/components/LangProvider';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import ProfessorReviews from '@/components/professors/ProfessorReviews';
 import { notify } from '@/lib/notify';
@@ -58,6 +59,7 @@ const labelStyle: React.CSSProperties = {
 };
 
 export default function NotesPage() {
+  const { t } = useLang();
   const [tab, setTab] = useState<'notes' | 'tutor' | 'professors'>('notes');
 
   const [notes, setNotes] = useLocalStorage<NoteListing[]>('noteListings', []);
@@ -85,7 +87,7 @@ export default function NotesPage() {
   function pickNoteFile(file: File | undefined) {
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      setNError('فایل بزرگ‌تر از ۲ مگابایت است — فعلاً فقط جزوه‌های سبک رایگان آپلود می‌شوند؛ برای فایل‌های بزرگ آیدی تلگرام بگذارید (فاز دیتابیس محدودیت ندارد)');
+      setNError(t('note.errFileBig'));
       return;
     }
     const reader = new FileReader();
@@ -95,11 +97,11 @@ export default function NotesPage() {
 
   function submitNote() {
     if (!nCourse.trim() || !nTg.trim()) {
-      setNError('نام درس و آیدی تلگرام الزامی است');
+      setNError(t('note.errCourseTg'));
       return;
     }
     if (!nFree && !Number(nPrice)) {
-      setNError('برای آیتم پولی، قیمت را وارد کنید');
+      setNError(t('note.errPrice'));
       return;
     }
     const item: NoteListing = {
@@ -145,8 +147,8 @@ export default function NotesPage() {
     <>
       <PageHeader
         icon="📚"
-        title="بازار جزوه و تدریس"
-        subtitle="جزوه‌ها و پاورپوینت‌های رایگان و پولی + آگهی تدریس خود دانشجوها"
+        title={t('notes.title')}
+        subtitle={t('notes.subtitle')}
         color="violet"
       />
       <main dir="rtl" style={{ maxWidth: 640, margin: '0 auto', padding: '16px 16px 48px' }}>
@@ -155,74 +157,74 @@ export default function NotesPage() {
             onClick={() => setTab('notes')}
             className={`chip ${tab === 'notes' ? 'chip-active' : ''}`}
           >
-            📄 جزوه و پاورپوینت ({notes.length})
+            {t('notes.tabNotes')} ({notes.length})
           </button>
           <button
             onClick={() => setTab('tutor')}
             className={`chip ${tab === 'tutor' ? 'chip-active' : ''}`}
           >
-            👨‍🏫 تدریس دانشجویی ({tutors.length})
+            {t('notes.tabTutor')} ({tutors.length})
           </button>
           <button
             onClick={() => setTab('professors')}
             className={`chip ${tab === 'professors' ? 'chip-active' : ''}`}
           >
-            ⭐ نظرات اساتید
+            {t('notes.tabProf')}
           </button>
         </div>
 
         <p style={{ fontSize: 12.5, color: 'var(--text-2)', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '10px 14px', lineHeight: 2, marginBottom: 16 }}>
-          ⚠ این آگهی‌ها فعلاً روی همین دستگاه ذخیره می‌شوند (نسخه‌ی نمایشی). با اتصال دیتابیس در فاز بعد، آگهی‌ها برای همه قابل دیدن می‌شود و پرداخت امن اضافه می‌گردد.
+          {t('notes.demoNotice')}
         </p>
 
         {tab === 'notes' && (
           <>
             {/* ── فرم ثبت جزوه ── */}
             <div className="card" style={{ padding: 14, display: 'grid', gap: 10, marginBottom: 20 }}>
-              <div style={{ fontWeight: 700, fontSize: 14 }}>➕ به اشتراک بگذارید</div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{t('note.addTitle')}</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {NOTE_KINDS.map((k) => (
                   <button key={k} onClick={() => setNKind(k)} className={`chip ${nKind === k ? 'chip-active' : ''}`}>
-                    {k}
+                    {t('note.kind.' + k)}
                   </button>
                 ))}
               </div>
               <div>
-                <label style={labelStyle}>نام درس *</label>
-                <input style={inputStyle} placeholder="مثلاً ساختمان داده" value={nCourse} onChange={(e) => setNCourse(e.target.value)} />
+                <label style={labelStyle}>{t('note.course')}</label>
+                <input style={inputStyle} placeholder={t('note.coursePh')} value={nCourse} onChange={(e) => setNCourse(e.target.value)} />
               </div>
               <div>
-                <label style={labelStyle}>نام استاد (اختیاری)</label>
+                <label style={labelStyle}>{t('note.teacher')}</label>
                 <input style={inputStyle} placeholder="مثلاً دکتر احمدی" value={nTeacher} onChange={(e) => setNTeacher(e.target.value)} />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
-                  <input type="radio" checked={nFree} onChange={() => setNFree(true)} /> رایگان
+                  <input type="radio" checked={nFree} onChange={() => setNFree(true)} /> {t('note.free')}
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
-                  <input type="radio" checked={!nFree} onChange={() => setNFree(false)} /> پولی
+                  <input type="radio" checked={!nFree} onChange={() => setNFree(false)} /> {t('note.paid')}
                 </label>
                 {!nFree && (
-                  <input style={{ ...inputStyle, width: 140 }} placeholder="قیمت (تومان)" inputMode="numeric" value={nPrice} onChange={(e) => setNPrice(e.target.value)} />
+                  <input style={{ ...inputStyle, width: 140 }} placeholder={t('note.price')} inputMode="numeric" value={nPrice} onChange={(e) => setNPrice(e.target.value)} />
                 )}
               </div>
               {nFree && (
                 <div>
-                  <label style={labelStyle}>فایل (اختیاری — حداکثر ۲ مگابایت)</label>
+                  <label style={labelStyle}>{t('note.file')}</label>
                   <input type="file" accept=".pdf,.ppt,.pptx,.doc,.docx,.jpg,.png" onChange={(e) => pickNoteFile(e.target.files?.[0])} style={{ fontSize: 12 }} />
                   {nFile && <span style={{ fontSize: 12, color: '#16a34a' }}>✔ {nFile.name}</span>}
                 </div>
               )}
               <div>
-                <label style={labelStyle}>توضیحات</label>
-                <textarea rows={2} style={{ ...inputStyle, resize: 'vertical' }} placeholder="چه ترمی؟ چند صفحه؟ کاغذی یا تایپی؟" value={nDesc} onChange={(e) => setNDesc(e.target.value)} />
+                <label style={labelStyle}>{t('note.desc')}</label>
+                <textarea rows={2} style={{ ...inputStyle, resize: 'vertical' }} placeholder={t('note.descPh')} value={nDesc} onChange={(e) => setNDesc(e.target.value)} />
               </div>
               <div>
-                <label style={labelStyle}>آیدی تلگرام برای ارتباط *</label>
+                <label style={labelStyle}>{t('note.telegram')}</label>
                 <input style={inputStyle} placeholder="@username" dir="ltr" value={nTg} onChange={(e) => setNTg(e.target.value)} />
               </div>
               {nError && <p style={{ color: 'var(--danger)', fontSize: 12.5 }}>{nError}</p>}
-              <button onClick={submitNote} className="btn btn-primary">ثبت آگهی</button>
+              <button onClick={submitNote} className="btn btn-primary">{t('note.submit')}</button>
             </div>
 
             {/* ── لیست جزوه‌ها ── */}
@@ -235,7 +237,7 @@ export default function NotesPage() {
                       fontSize: 12, fontWeight: 800,
                       color: n.isFree ? '#16a34a' : '#d97706',
                     }}>
-                      {n.isFree ? 'رایگان 🎁' : `${(n.price ?? 0).toLocaleString('fa-IR')} تومان`}
+                      {n.isFree ? `${t('note.free')} 🎁` : `${(n.price ?? 0).toLocaleString('fa-IR')} ${t('note.price')}`}
                     </span>
                   </div>
                   <div style={{ marginTop: 8, fontWeight: 700, fontSize: 15 }}>{n.course}</div>
@@ -243,11 +245,11 @@ export default function NotesPage() {
                   {n.description && <div style={{ fontSize: 13, color: 'var(--text-2)', marginTop: 6, lineHeight: 1.9 }}>{n.description}</div>}
                   <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <a href={`https://t.me/${n.telegram}`} target="_blank" rel="noopener" className="btn btn-soft" style={{ fontSize: 12.5 }}>
-                      💬 ارتباط: @{n.telegram}
+                      {t('note.contact')} @{n.telegram}
                     </a>
                     {n.fileData && (
                       <a href={n.fileData} download={n.fileName} className="btn btn-primary" style={{ fontSize: 12.5 }}>
-                        ⬇ دانلود {n.fileName}
+                        {t('note.download')} {n.fileName}
                       </a>
                     )}
                     <button
@@ -262,7 +264,7 @@ export default function NotesPage() {
               ))}
               {sortedNotes.length === 0 && (
                 <p style={{ color: 'var(--text-3)', fontSize: 13, textAlign: 'center', padding: 24 }}>
-                  هنوز جزوه‌ای ثبت نشده — اولین نفر باشید!
+                  {t('note.empty')}
                 </p>
               )}
             </div>
@@ -273,58 +275,58 @@ export default function NotesPage() {
           <>
             {/* ── فرم تدریس ── */}
             <div className="card" style={{ padding: 14, display: 'grid', gap: 10, marginBottom: 20 }}>
-              <div style={{ fontWeight: 700, fontSize: 14 }}>➕ آگهی تدریس خودتان را ثبت کنید</div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{t('tutor.addTitle')}</div>
               <div className="form-grid-2">
                 <div>
-                  <label style={labelStyle}>اسم شما *</label>
+                  <label style={labelStyle}>{t('tutor.name')}</label>
                   <input style={inputStyle} value={tName} onChange={(e) => setTName(e.target.value)} />
                 </div>
                 <div>
-                  <label style={labelStyle}>درسی که تدریس می‌کنید *</label>
-                  <input style={inputStyle} placeholder="مثلاً حسابان ۱" value={tCourse} onChange={(e) => setTCourse(e.target.value)} />
+                  <label style={labelStyle}>{t('tutor.course')}</label>
+                  <input style={inputStyle} placeholder={t('tutor.coursePh')} value={tCourse} onChange={(e) => setTCourse(e.target.value)} />
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
-                  <input type="radio" checked={tFree} onChange={() => setTFree(true)} /> رایگان (کمک به بچه‌ها 🤝)
+                  <input type="radio" checked={tFree} onChange={() => setTFree(true)} /> {t('tutor.freeOpt')}
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
-                  <input type="radio" checked={!tFree} onChange={() => setTFree(false)} /> درآمدی
+                  <input type="radio" checked={!tFree} onChange={() => setTFree(false)} /> {t('tutor.paidOpt')}
                 </label>
                 {!tFree && (
-                  <input style={{ ...inputStyle, width: 160 }} placeholder="قیمت هر جلسه (تومان)" inputMode="numeric" value={tPrice} onChange={(e) => setTPrice(e.target.value)} />
+                  <input style={{ ...inputStyle, width: 160 }} placeholder={t('tutor.priceSession')} inputMode="numeric" value={tPrice} onChange={(e) => setTPrice(e.target.value)} />
                 )}
               </div>
               <div>
-                <label style={labelStyle}>توضیحات (ساعت، مکان، آنلاین/حضوری)</label>
+                <label style={labelStyle}>{t('tutor.details')}</label>
                 <textarea rows={2} style={{ ...inputStyle, resize: 'vertical' }} value={tDesc} onChange={(e) => setTDesc(e.target.value)} />
               </div>
               <div>
                 <label style={labelStyle}>آیدی تلگرام *</label>
                 <input style={inputStyle} placeholder="@username" dir="ltr" value={tTg} onChange={(e) => setTTg(e.target.value)} />
               </div>
-              <button onClick={submitTutor} className="btn btn-primary">ثبت آگهی تدریس</button>
+              <button onClick={submitTutor} className="btn btn-primary">{t('tutor.submit')}</button>
             </div>
 
             {/* ── لیست تدریس ── */}
             <div style={{ display: 'grid', gap: 12 }}>
-              {sortedTutors.map((t) => (
-                <div key={t.id} className="card card-hover" style={{ padding: 14 }}>
+              {sortedTutors.map((tu) => (
+                <div key={tu.id} className="card card-hover" style={{ padding: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <div style={{ fontWeight: 700, fontSize: 15 }}>👨‍🏫 {t.name} — {t.course}</div>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: t.isFree ? '#16a34a' : '#d97706' }}>
-                      {t.isFree ? 'رایگان 🎁' : t.price ? `${t.price.toLocaleString('fa-IR')} تومان / جلسه` : 'توافقی'}
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>👨‍🏫 {tu.name} — {tu.course}</div>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: tu.isFree ? '#16a34a' : '#d97706' }}>
+                      {tu.isFree ? `${t('note.free')} 🎁` : tu.price ? `${tu.price.toLocaleString('fa-IR')} ${t('tutor.perSession')}` : t('tutor.agree')}
                     </span>
                   </div>
-                  {t.description && <div style={{ fontSize: 13, color: 'var(--text-2)', marginTop: 6, lineHeight: 1.9 }}>{t.description}</div>}
-                  <a href={`https://t.me/${t.telegram}`} target="_blank" rel="noopener" className="btn btn-soft" style={{ fontSize: 12.5, marginTop: 10, display: 'inline-block' }}>
-                    💬 ارتباط: @{t.telegram}
+                  {tu.description && <div style={{ fontSize: 13, color: 'var(--text-2)', marginTop: 6, lineHeight: 1.9 }}>{tu.description}</div>}
+                  <a href={`https://t.me/${tu.telegram}`} target="_blank" rel="noopener" className="btn btn-soft" style={{ fontSize: 12.5, marginTop: 10, display: 'inline-block' }}>
+                    {t('note.contact')} @{tu.telegram}
                   </a>
                 </div>
               ))}
               {sortedTutors.length === 0 && (
                 <p style={{ color: 'var(--text-3)', fontSize: 13, textAlign: 'center', padding: 24 }}>
-                  هنوز آگهی تدریسی ثبت نشده — درسی بلدید؟ تدریس کنید!
+                  {t('tutor.empty')}
                 </p>
               )}
             </div>

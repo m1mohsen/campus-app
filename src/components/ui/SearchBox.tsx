@@ -1,11 +1,14 @@
 'use client';
 
+import { useLang } from '@/components/LangProvider';
+
 interface SearchBoxProps {
   value: string;
   onChange: (value: string) => void;
 }
 
 export default function SearchBox({ value, onChange }: SearchBoxProps) {
+  const { t, dir } = useLang();
   return (
     <div style={{
       position: 'relative',
@@ -14,7 +17,7 @@ export default function SearchBox({ value, onChange }: SearchBoxProps) {
       {/* آیکون ذره‌بین */}
       <span style={{
         position: 'absolute',
-        right: '12px',
+        insetInlineEnd: '12px',
         top: '50%',
         transform: 'translateY(-50%)',
         fontSize: '16px',
@@ -28,7 +31,7 @@ export default function SearchBox({ value, onChange }: SearchBoxProps) {
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="جستجوی مکان..."
+        placeholder={t('search.placeholder')}
         style={{
           width: '100%',
           padding: '10px 40px 10px 12px',
@@ -37,7 +40,7 @@ export default function SearchBox({ value, onChange }: SearchBoxProps) {
           border: '1.5px solid #cbd5e1',
           borderRadius: '10px',
           outline: 'none',
-          direction: 'rtl',
+          direction: dir,
           fontFamily: 'inherit',
           boxSizing: 'border-box',
           backgroundColor: '#ffffff',
@@ -46,12 +49,7 @@ export default function SearchBox({ value, onChange }: SearchBoxProps) {
         onFocus={(e) => e.target.style.borderColor = '#38bdf8'}
         onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
       />
-      
-      <style jsx>{`
-        input::placeholder {
-          color: #94a3b8;
-        }
-      `}</style>
     </div>
   );
 }
+

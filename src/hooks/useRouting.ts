@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { fetchRoute } from "@/services/routingService";
 import type { RoutingLocation } from "@/types/location";
+import { useLang } from "@/components/LangProvider";
 
 export type { RoutingLocation };
 
@@ -74,6 +75,7 @@ function resetRoute(state: RoutingState): RoutingState {
 }
 
 export function useRouting() {
+  const { t } = useLang();
   const [state, setState] = useState<RoutingState>(INITIAL_STATE);
 
   // آخرین وضعیت برای استفاده داخل callbackها. هر تغییر state از طریق
@@ -121,11 +123,11 @@ export function useRouting() {
           apply({
             ...stateRef.current,
             loading: false,
-            error: e instanceof Error ? e.message : "خطا در دریافت مسیر",
+            error: e instanceof Error ? e.message : t("route.errGeneric"),
           });
         });
     },
-    [apply]
+    [apply, t]
   );
 
   const selectLocation = useCallback(
@@ -201,7 +203,7 @@ export function useRouting() {
       if (!("geolocation" in navigator)) {
         apply({
           ...stateRef.current,
-          error: "موقعیت‌یابی پشتیبانی نمی‌شود — اول روی مبدأ کلیک کنید",
+          error: `${t("geo.unsupported")} — ${t("route.pickOrigin")}`,
         });
         return;
       }
@@ -222,20 +224,20 @@ export function useRouting() {
           apply({
             ...stateRef.current,
             locating: false,
-            error: "دسترسی به موقعیت رد شد — اول روی مبدأ کلیک کنید",
+            error: t("geo.denied"),
           });
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
       );
     },
-    [apply, startFetch]
+    [apply, startFetch, t]
   );
 
   // «موقعیت من» — مبدأ را به موقعیت لحظه‌ای کاربر تغییر می‌دهد؛
   // اگر مقصد قبلاً انتخاب شده باشد مسیر جدید گرفته می‌شود
   const locateMe = useCallback(() => {
     if (!("geolocation" in navigator)) {
-      apply({ ...stateRef.current, isActive: true, error: "مرورگر شما از موقعیت‌یابی پشتیبانی نمی‌کند" });
+      apply({ ...stateRef.current, isActive: true, error: t("geo.unsupported") });
       return;
     }
 
@@ -264,19 +266,19 @@ export function useRouting() {
       },
       (err) => {
         const messages: Record<number, string> = {
-          1: "دسترسی به موقعیت مکانی رد شد",
-          2: "موقعیت مکانی در دسترس نیست",
-          3: "دریافت موقعیت بیش از حد طول کشید",
+          1: t("geo.denied"),
+          2: t("geo.unavailable"),
+          3: t("geo.timeout"),
         };
         apply({
           ...stateRef.current,
           locating: false,
-          error: messages[err.code] ?? "خطا در دریافت موقعیت",
+          error: messages[err.code] ?? t("geo.errGeneric"),
         });
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
     );
-  }, [apply, startFetch]);
+  }, [apply, startFetch, t]);
 
   const toggleRouting = useCallback(() => {
     abortRef.current?.abort();

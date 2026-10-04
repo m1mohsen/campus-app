@@ -3,12 +3,13 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import PageHeader from '@/components/PageHeader';
+import { useLang } from '@/components/LangProvider';
 import { useMergedLocations } from '@/hooks/useAdminData';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { ensureNotificationPermission, notify } from '@/lib/notify';
 import { buildIcs, downloadIcs } from '@/lib/ics';
 
-export const DAYS = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه'];
+export const DAYS = ['0', '1', '2', '3', '4', '5', '6']; // ایندکس‌ها؛ نمایش با t('days.N')
 
 export interface ClassEntry {
   id: number;
@@ -37,6 +38,7 @@ const inputStyle: React.CSSProperties = {
 };
 
 export default function SchedulePage() {
+  const { t } = useLang();
   const [tab, setTab] = useState<'classes' | 'exams'>('classes');
   const allLocations = useMergedLocations(); // مکان‌های پایه + اضافه‌های ادمین
   const [classes, setClasses] = useLocalStorage<ClassEntry[]>('myClasses', []);
@@ -143,8 +145,8 @@ export default function SchedulePage() {
     <>
       <PageHeader
         icon="📅"
-        title="برنامه‌ی من"
-        subtitle="برنامه هفتگی کلاس‌ها و تاریخ امتحانات — با یادآور و خروجی تقویم برای همگام‌سازی با موبایل"
+        title={t("sch.title")}
+        subtitle={t("sch.subtitle")}
         color="green"
       />
       <main dir="rtl" style={{ maxWidth: 640, margin: '0 auto', padding: '16px 16px 48px' }}>
@@ -153,61 +155,60 @@ export default function SchedulePage() {
           onClick={() => setTab('classes')}
           style={{ ...tabBtnStyle, background: tab === 'classes' ? '#1d4ed8' : '#fff', color: tab === 'classes' ? '#fff' : '#334155' }}
         >
-          کلاس‌های هفته
+          {t('sch.tabClasses')}
         </button>
         <button
           onClick={() => setTab('exams')}
           style={{ ...tabBtnStyle, background: tab === 'exams' ? '#1d4ed8' : '#fff', color: tab === 'exams' ? '#fff' : '#334155' }}
         >
-          امتحانات
+          {t('sch.tabExams')}
         </button>
         <button
           onClick={exportIcs}
           style={{ ...tabBtnStyle, marginRight: 'auto', background: '#16a34a', color: '#fff' }}
         >
-          ⬇ خروجی تقویم (.ics)
+          {t('sch.ics')}
         </button>
       </div>
 
       <p style={{ fontSize: 12.5, color: 'var(--text-2)', background: 'var(--primary-soft)', padding: '10px 14px', borderRadius: 12, lineHeight: 2, marginBottom: 16 }}>
-        💡 <strong>همگام‌سازی با گوگل کلندر:</strong> دکمه‌ی «خروجی تقویم» را بزنید، فایل <span dir="ltr">.ics</span> دانلود می‌شود؛
-        بعد در گوگل کلندر به بخش Settings ← Import &amp; export بروید و فایل را انتخاب کنید تا همه‌ی کلاس‌ها و امتحانات تقویم موبایل‌تان بیاید.
+        {t('sch.calendarHint')}
       </p>
 
       {tab === 'classes' && (
         <>
           {/* فرم افزودن کلاس */}
           <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, display: 'grid', gap: 8 }}>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>➕ کلاس جدید</div>
-            <input style={inputStyle} placeholder="نام درس" value={course} onChange={(e) => setCourse(e.target.value)} />
+            <div style={{ fontWeight: 700, fontSize: 14 }}>{t('sch.addClass')}</div>
+            <input style={inputStyle} placeholder={t("sch.course")} value={course} onChange={(e) => setCourse(e.target.value)} />
             <div className="form-grid-3">
               <div>
-                <label style={labelStyle}>روز هفته</label>
+                <label style={labelStyle}>{t('sch.day')}</label>
                 <select style={inputStyle} value={day} onChange={(e) => setDay(Number(e.target.value))}>
                   {DAYS.map((d, i) => (
-                    <option key={d} value={i}>{d}</option>
+                    <option key={d} value={i}>{t('days.' + i)}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label style={labelStyle}>⏰ ساعت شروع</label>
+                <label style={labelStyle}>{t('sch.start')}</label>
                 <input type="time" style={inputStyle} value={start} onChange={(e) => setStart(e.target.value)} />
               </div>
               <div>
-                <label style={labelStyle}>🏁 ساعت پایان</label>
+                <label style={labelStyle}>{t('sch.end')}</label>
                 <input type="time" style={inputStyle} value={end} onChange={(e) => setEnd(e.target.value)} />
               </div>
             </div>
             <div>
-              <label style={labelStyle}>محل کلاس</label>
+              <label style={labelStyle}>{t('sch.place')}</label>
               <select style={inputStyle} value={locationId} onChange={(e) => setLocationId(e.target.value === '' ? '' : Number(e.target.value))}>
-                <option value="">انتخاب کنید (اختیاری — از روی نقشه)</option>
+                <option value="">{t('sch.placeOptional')}</option>
                 {allLocations.map((l) => (
                   <option key={l.id} value={l.id}>{l.name}</option>
                 ))}
               </select>
             </div>
-            <button onClick={addClass} style={addBtnStyle}>ثبت کلاس</button>
+            <button onClick={addClass} style={addBtnStyle}>{t('sch.addClassBtn')}</button>
           </div>
 
           {/* لیست کلاس‌ها به تفکیک روز */}
@@ -218,7 +219,7 @@ export default function SchedulePage() {
               return (
                 <div key={dayName} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 14 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8, color: dayIndex === todayFa ? '#1d4ed8' : 'inherit' }}>
-                    {dayName}{dayIndex === todayFa ? ' (امروز)' : ''}
+                    {t('days.' + dayIndex)}{dayIndex === todayFa ? t('sch.today') : ''}
                   </div>
                   {dayClasses.map((c) => (
                     <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderTop: '1px dashed var(--border)', flexWrap: 'wrap' }}>
@@ -229,13 +230,13 @@ export default function SchedulePage() {
                       </div>
                       {c.locationId && (
                         <Link href={`/map?loc=${c.locationId}`} style={{ fontSize: 12, color: '#1d4ed8', fontWeight: 600, flexShrink: 0 }}>
-                          🗺 نقشه
+                          {t('common.map')}
                         </Link>
                       )}
                       <button
                         onClick={() => setClasses((prev) => prev.filter((x) => x.id !== c.id))}
                         style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 13, flexShrink: 0, padding: '2px 4px' }}
-                        aria-label="حذف کلاس"
+                        aria-label={t("sch.delClass")}
                       >
                         🗑
                       </button>
@@ -246,7 +247,7 @@ export default function SchedulePage() {
             })}
             {classes.length === 0 && (
               <p style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', padding: 24 }}>
-                هنوز کلاسی ثبت نکرده‌ای. از فرم بالا اضافه کن!
+                {t('sch.noClasses')}
               </p>
             )}
           </div>
@@ -256,14 +257,20 @@ export default function SchedulePage() {
       {tab === 'exams' && (
         <>
           <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, display: 'grid', gap: 8 }}>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>➕ امتحان جدید</div>
-            <input style={inputStyle} placeholder="نام درس" value={examCourse} onChange={(e) => setExamCourse(e.target.value)} />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <input type="date" style={inputStyle} value={examDate} onChange={(e) => setExamDate(e.target.value)} />
-              <input type="time" style={inputStyle} value={examTime} onChange={(e) => setExamTime(e.target.value)} />
+            <div style={{ fontWeight: 700, fontSize: 14 }}>{t('sch.addExam')}</div>
+            <input style={inputStyle} placeholder={t("sch.course")} value={examCourse} onChange={(e) => setExamCourse(e.target.value)} />
+            <div className="form-grid-2">
+              <div>
+                <label style={labelStyle}>{t('sch.examDate')}</label>
+                <input type="date" style={inputStyle} value={examDate} onChange={(e) => setExamDate(e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>{t('sch.examTime')}</label>
+                <input type="time" style={inputStyle} value={examTime} onChange={(e) => setExamTime(e.target.value)} />
+              </div>
             </div>
-            <input style={inputStyle} placeholder="محل امتحان" value={examLocation} onChange={(e) => setExamLocation(e.target.value)} />
-            <button onClick={addExam} style={addBtnStyle}>ثبت امتحان</button>
+            <input style={inputStyle} placeholder={t("sch.examLocation")} value={examLocation} onChange={(e) => setExamLocation(e.target.value)} />
+            <button onClick={addExam} style={addBtnStyle}>{t('sch.addExamBtn')}</button>
           </div>
 
           <div style={{ marginTop: 16, display: 'grid', gap: 8 }}>
@@ -275,7 +282,7 @@ export default function SchedulePage() {
                 <button
                   onClick={() => setExams((prev) => prev.filter((x) => x.id !== e.id))}
                   style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#dc2626', padding: '2px 4px' }}
-                  aria-label="حذف امتحان"
+                  aria-label={t("sch.delExam")}
                 >
                   🗑
                 </button>
@@ -283,7 +290,7 @@ export default function SchedulePage() {
             ))}
             {exams.length === 0 && (
               <p style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', padding: 24 }}>
-                امتحانی ثبت نشده است.
+                {t('sch.noExams')}
               </p>
             )}
           </div>

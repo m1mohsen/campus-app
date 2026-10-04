@@ -10,7 +10,8 @@ import {
   type MapLayerMouseEvent,
 } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import type { Location } from '@/types/location';
+import type { Location, RoutingLocation } from '@/types/location';
+import { useLang } from '@/components/LangProvider';
 
 // ورکر مپ‌لیبر با Turbopack درست لود نمی‌شود؛ نسخه‌ی استاتیک در public
 // (با postinstall همیشه هم‌نسخه‌ی کتابخانه کپی می‌شود)
@@ -30,6 +31,8 @@ function webglSupported(): boolean {
 interface CampusMap3DProps {
   locations: Location[];
   onClose: () => void;
+  /** مسیریابی سریع: مکان مقصد می‌شود (و اگر مبدأ نباشد موقعیت کاربر) */
+  onRouteTo: (location: RoutingLocation) => void;
 }
 
 /**
@@ -37,12 +40,11 @@ interface CampusMap3DProps {
  * با موتور MapLibre GL و تایل‌های رایگان OpenFreeMap (بدون کلید).
  * چرخش: Ctrl + درگ — شیب: راست‌کلیک + درگ
  */
-export default function CampusMap3D({ locations, onClose }: CampusMap3DProps) {
+export default function CampusMap3D({ locations, onClose, onRouteTo }: CampusMap3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { t, dir } = useLang();
   const [fatal] = useState<string | null>(
-    typeof window !== 'undefined' && !webglSupported()
-      ? 'مرورگر فعلی از WebGL پشتیبانی نمی‌کند — لطفاً در Chrome یا Edge باز کنید'
-      : null
+    typeof window !== 'undefined' && !webglSupported() ? t('three.webgl') : null
   );
   const [errText, setErrText] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -66,8 +68,7 @@ export default function CampusMap3D({ locations, onClose }: CampusMap3DProps) {
     // هر خطای تایل/استایل را نمایش بده — نه صفحه‌ی خاکستریِ بی‌توضیح
     map.on('error', (e) => {
       const msg =
-        (e as { error?: { message?: string } })?.error?.message ??
-        'خطا در بارگذاری کاشی‌های نقشه';
+        (e as { error?: { message?: string } })?.error?.message ?? t('three.tileError');
       setErrText(msg);
     });
 
@@ -76,9 +77,7 @@ export default function CampusMap3D({ locations, onClose }: CampusMap3DProps) {
 
     // اگر استایل بعد از ۱۲ ثانیه لود نشد، پیام بده
     const styleTimer = setTimeout(() => {
-      if (!map.isStyleLoaded()) {
-        setErrText('لود استایل نقشه طول کشید — احتمالاً فیلترینگ جلوی سرور تایل‌ها را گرفته');
-      }
+      if (!map.isStyleLoaded()) setErrText(t('three.styleSlow'));
     }, 12000);
 
     let cancelled = false;
@@ -146,13 +145,14 @@ export default function CampusMap3D({ locations, onClose }: CampusMap3DProps) {
         if (!f) return;
         const coords = (f.geometry as GeoJSON.Point).coordinates as [number, number];
         const name = String(f.properties?.name ?? '');
-        const id = String(f.properties?.id ?? '');
+        const id = Number(f.properties?.id ?? 0);
         new Popup({ offset: 12 })
           .setLngLat(coords)
           .setHTML(
-            `<div dir="rtl" style="font-family:inherit;min-width:140px;">
+            `<div dir="${dir}" style="font-family:inherit;min-width:150px;">
                <b style="font-size:14px;">${name}</b><br>
-               <a href="/map?loc=${id}" style="color:#2563eb;font-size:13px;text-decoration:none;">🧭 مسیر در نقشه دوبعدی</a>
+               <button onclick="window.__map3dRoute(${id})" style="margin-top:6px;padding:5px 10px;border:none;border-radius:8px;background:#1d4ed8;color:#fff;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;">${t('three.routeHere')}</button><br>
+               <a href="/map?loc=${id}" style="color:#2563eb;font-size:12.5px;text-decoration:none;">${t('three.routeOn2d')}</a>
              </div>`
           )
           .addTo(map);
@@ -167,19 +167,33 @@ export default function CampusMap3D({ locations, onClose }: CampusMap3DProps) {
       clearTimeout(styleTimer);
       map.remove();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locations, fatal, reloadKey]);
+
+  // پل بین popup نقشه (HTML خام) و مسیریابی سریع
+  useEffect(() => {
+    (window as unknown as { __map3dRoute?: (id: number) => void }).__map3dRoute = (id: number) => {
+      const loc = locations.find((l) => l.id === id);
+      if (loc) {
+        onRouteTo({ id: loc.id, lat: loc.lat, lng: loc.lng, name: loc.name });
+      }
+    };
+    return () => {
+      delete (window as unknown as { __map3dRoute?: unknown }).__map3dRoute;
+    };
+  }, [locations, onRouteTo]);
 
   if (fatal) {
     return (
       <div style={{
-        position: 'absolute', inset: 0, zIndex: 900, background: '#dfe8f2',
+        position: 'absolute', inset: 0, zIndex: 1150, background: '#dfe8f2',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
       }}>
-        <div dir="rtl" className="card" style={{ padding: 24, maxWidth: 360, textAlign: 'center' }}>
+        <div dir={dir} className="card" style={{ padding: 24, maxWidth: 360, textAlign: 'center' }}>
           <div style={{ fontSize: 40 }}>🏙</div>
           <p style={{ marginTop: 10, fontSize: 14, lineHeight: 2, color: 'var(--text)' }}>{fatal}</p>
           <button onClick={onClose} className="btn btn-primary" style={{ marginTop: 10 }}>
-            بازگشت به نقشه دوبعدی
+            {t('three.back')}
           </button>
         </div>
       </div>
@@ -187,14 +201,14 @@ export default function CampusMap3D({ locations, onClose }: CampusMap3DProps) {
   }
 
   return (
-    <div style={{ position: 'absolute', inset: 0, zIndex: 900, background: '#dfe8f2' }}>
+    <div style={{ position: 'absolute', inset: 0, zIndex: 1150, background: '#dfe8f2' }}>
       <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
 
       {/* بنر خطا (به‌جای صفحه‌ی خاکستری بی‌توضیح) */}
       {errText && (
-        <div dir="rtl" style={{
+        <div dir={dir} style={{
           position: 'absolute', top: 64, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 980, maxWidth: '92%',
+          zIndex: 1180, maxWidth: '92%',
           background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e',
           padding: '10px 14px', borderRadius: 12, fontSize: 12.5, lineHeight: 1.9,
           boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
@@ -205,25 +219,25 @@ export default function CampusMap3D({ locations, onClose }: CampusMap3DProps) {
               onClick={() => { setErrText(null); setReloadKey((k) => k + 1); }}
               style={{ padding: '4px 12px', borderRadius: 8, border: '1px solid #fde68a', background: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}
             >
-              ↻ تلاش دوباره
+              {t('three.retry')}
             </button>
           </div>
         </div>
       )}
 
       {/* برچسب راهنما */}
-      <div dir="rtl" style={{
+      <div dir={dir} style={{
         position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
-        zIndex: 950, background: 'rgba(15,23,42,0.75)', color: '#fff',
+        zIndex: 1180, background: 'rgba(15,23,42,0.75)', color: '#fff',
         padding: '6px 14px', borderRadius: 999, fontSize: 12,
         backdropFilter: 'blur(6px)', whiteSpace: 'nowrap',
       }}>
-        🏙 نمای سه‌بعدی پردیس — چرخش: Ctrl + درگ | شیب: راست‌کلیک + درگ
+        {t('three.hint')}
       </div>
 
       {/* اعتبار نقشه */}
       <div dir="ltr" style={{
-        position: 'absolute', bottom: 4, right: 6, zIndex: 950,
+        position: 'absolute', bottom: 4, right: 6, zIndex: 1180,
         fontSize: 10, color: 'rgba(255,255,255,0.9)',
         textShadow: '0 1px 2px rgba(0,0,0,0.8)',
       }}>
@@ -233,15 +247,16 @@ export default function CampusMap3D({ locations, onClose }: CampusMap3DProps) {
       {/* دکمه بازگشت — سمت چپ تا با دکمه‌های نقشه دوبعدی تداخل نکند */}
       <button
         onClick={onClose}
+        dir={dir}
         style={{
-          position: 'absolute', top: 12, left: 12, zIndex: 1000,
+          position: 'absolute', top: 12, left: 12, zIndex: 1180,
           padding: '9px 16px', borderRadius: 12, border: 'none',
           background: 'rgba(15,23,42,0.85)', color: '#fff',
           fontWeight: 700, fontSize: 13.5, cursor: 'pointer',
           backdropFilter: 'blur(6px)', boxShadow: '0 4px 14px rgba(0,0,0,0.3)',
         }}
       >
-        ↩ بازگشت به نقشه دوبعدی
+        {t('three.back')}
       </button>
     </div>
   );

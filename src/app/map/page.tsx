@@ -6,11 +6,17 @@ import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import FilterBar from '@/components/ui/FilterBar';
 import SearchBox from '@/components/ui/SearchBox';
+import { useLang } from '@/components/LangProvider';
 import { LocationCategory } from '@/types/location';
 
 const CampusMap = dynamic(() => import('@/components/map/CampusMap'), {
   ssr: false,
-  loading: () => (
+  loading: () => <MapLoading />,
+});
+
+function MapLoading() {
+  const { t } = useLang();
+  return (
     <div style={{
       flex: 1,
       display: 'flex',
@@ -20,12 +26,13 @@ const CampusMap = dynamic(() => import('@/components/map/CampusMap'), {
       color: 'hsl(0 0% 50%)',
       fontSize: '16px',
     }}>
-      در حال بارگذاری نقشه...
+      {t('common.loading')}
     </div>
-  ),
-});
+  );
+}
 
 function MapPageInner() {
+  const { t, dir } = useLang();
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCampusImage, setShowCampusImage] = useState(false);
@@ -50,19 +57,19 @@ function MapPageInner() {
       height: 'calc(100dvh - 52px)',
       fontFamily: 'inherit',
     }}>
-      <div dir="rtl" style={{
+      <div dir={dir} style={{
         padding: '10px 16px',
         background: 'var(--grad-blue)',
         color: '#fff',
-        fontSize: '17px',
+        fontSize: '15.5px',
         fontWeight: 'bold',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 8,
       }}>
-        <span style={{ fontSize: '15.5px' }}>
-          🎓 نقشه پردیس — <span style={{ fontWeight: 600, opacity: 0.9 }}>دانشگاه علم و صنعت ایران</span>
+        <span>
+          🎓 {t('map.title')} — <span style={{ fontWeight: 600, opacity: 0.9 }}>{t('map.university')}</span>
         </span>
         <button
           onClick={() => setShowCampusImage(true)}
@@ -78,7 +85,7 @@ function MapPageInner() {
             flexShrink: 0,
           }}
         >
-          🖼 نقشه اصلی دانشگاه
+          {t('map.officialImage')}
         </button>
       </div>
 
@@ -121,7 +128,7 @@ function MapPageInner() {
             cursor: 'zoom-out',
           }}
         >
-          <div dir="rtl" style={{
+          <div dir={dir} style={{
             alignSelf: 'stretch',
             maxWidth: 800,
             width: '100%',
@@ -133,9 +140,9 @@ function MapPageInner() {
             fontWeight: 700,
             marginBottom: 10,
           }}>
-            <span>🖼 نقشه اصلی پردیس دانشگاه</span>
+            <span>{t('map.imageTitle')}</span>
             <span style={{ fontSize: 13, fontWeight: 400, opacity: 0.8 }}>
-              برای بستن کلیک کنید یا Esc بزنید
+              {t('map.imageCloseHint')}
             </span>
           </div>
           <div style={{
@@ -147,7 +154,7 @@ function MapPageInner() {
           }}>
             <Image
               src="/campus-map.jpg"
-              alt="نقشه اصلی پردیس دانشگاه علم و صنعت ایران"
+              alt={t('map.imageTitle')}
               fill
               className="object-contain"
               sizes="(max-width: 800px) 100vw, 800px"

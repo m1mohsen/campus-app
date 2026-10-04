@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import PageHeader from '@/components/PageHeader';
+import { useLang } from '@/components/LangProvider';
 import { campusLocations } from '@/data/locations';
 import { spotTags, ALL_SPOT_TAGS } from '@/data/spotTags';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -9,6 +10,7 @@ import { ReviewList } from '@/components/spots/ReviewList';
 import { Location } from '@/types/location';
 
 export default function SpotsPage() {
+  const { t } = useLang();
   // دیتای شخصی (نظرات) در localStorage — در فاز بعد به Supabase می‌رود
   const [reviews] = useLocalStorage<Record<number, { rating: number; count: number }>>('spotRatings', {});
 
@@ -24,8 +26,8 @@ export default function SpotsPage() {
     <>
       <PageHeader
         icon="☕"
-        title="پاتوق‌های اطراف"
-        subtitle="کافه‌ها و غذاخوری‌های اطراف دانشگاه با تگ‌های دانشجویی — امتیاز بده، نظر بگذار، عکس بگذار"
+        title={t('spots.title')}
+        subtitle={t('spots.subtitle')}
         color="orange"
       />
       <main dir="rtl" style={{ maxWidth: 640, margin: '0 auto', padding: '16px 16px 48px' }}>
@@ -74,7 +76,7 @@ export default function SpotsPage() {
 
               <ReviewList spotId={spot.id} spotName={spot.name} />
 
-              <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+              <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <a
                   href={`https://www.google.com/maps?q=${spot.lat},${spot.lng}`}
                   target="_blank"
@@ -88,7 +90,7 @@ export default function SpotsPage() {
                     fontWeight: 600,
                   }}
                 >
-                  🧭 مسیر با گوگل‌مپ
+                  {t('spots.routeGoogle')}
                 </a>
                 <a
                   href={`/map?loc=${spot.id}`}
@@ -101,7 +103,7 @@ export default function SpotsPage() {
                     fontWeight: 600,
                   }}
                 >
-                  🗺 روی نقشه پردیس
+                  {t('spots.onMap')}
                 </a>
               </div>
             </div>
@@ -110,7 +112,7 @@ export default function SpotsPage() {
       </div>
 
       <p style={{ marginTop: 24, color: '#94a3b8', fontSize: 12, textAlign: 'center' }}>
-        تگ‌ها: {ALL_SPOT_TAGS.join(' • ')}
+        {t('spots.tagsLabel')} {ALL_SPOT_TAGS.join(' • ')}
       </p>
       </main>
     </>

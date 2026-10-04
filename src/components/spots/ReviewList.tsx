@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useLang } from '@/components/LangProvider';
 
 export interface Review {
   id: number;
@@ -33,6 +34,7 @@ function Stars({ value, onChange }: { value: number; onChange?: (v: number) => v
 }
 
 export function ReviewList({ spotId }: ReviewListProps) {
+  const { t } = useLang();
   const [reviews, setReviews] = useLocalStorage<Record<number, Review[]>>(
     'spotReviews',
     {}
@@ -49,7 +51,7 @@ export function ReviewList({ spotId }: ReviewListProps) {
 
   function submit() {
     if (draftRating === 0) {
-      setError('اول امتیاز بده!');
+      setError(t('spots.ratingFirst'));
       return;
     }
     const review: Review = {
@@ -70,7 +72,7 @@ export function ReviewList({ spotId }: ReviewListProps) {
   function pickPhoto(file: File | undefined) {
     if (!file) return;
     if (file.size > 150 * 1024) {
-      setError('عکس خیلی بزرگ است (حداکثر ۱۵۰ کیلوبایت) — این محدودیت در نسخه‌ی دیتابیس‌دار برداشته می‌شود');
+      setError(t('spots.photoBig'));
       return;
     }
     const reader = new FileReader();
@@ -84,13 +86,13 @@ export function ReviewList({ spotId }: ReviewListProps) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '8px 10px', background: '#f8fafc', borderRadius: 10 }}>
         <div style={{ fontSize: 12, color: 'var(--text-2)' }}>
           {list.length > 0 ? (
-            <>امتیاز کلی: <strong style={{ color: '#f59e0b' }}>{avg.toFixed(1)}</strong> از ۵ ({list.length} نظر)</>
+            <>{t('spots.avg')} <strong style={{ color: '#f59e0b' }}>{avg.toFixed(1)}</strong> {t('spots.of5')} ({list.length})</>
           ) : (
-            'هنوز امتیازی ندارد'
+            t('spots.noRating')
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginRight: 'auto' }}>
-          <span style={{ fontSize: 12, color: 'var(--text-2)' }}>امتیاز شما:</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginInlineStart: 'auto' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{t('spots.yourRating')}</span>
           <Stars value={open ? draftRating : 0} onChange={(v) => { setDraftRating(v); setOpen(true); }} />
         </div>
       </div>
@@ -107,7 +109,7 @@ export function ReviewList({ spotId }: ReviewListProps) {
             cursor: 'pointer',
           }}
         >
-          {open ? '✕ بستن' : `💬 نظر دادن${list.length ? ` (${list.length})` : ''}`}
+          {open ? t('spots.close') : list.length ? t('spots.reviewCount', { n: list.length }) : t('spots.addReview')}
         </button>
       </div>
 
@@ -117,7 +119,7 @@ export function ReviewList({ spotId }: ReviewListProps) {
           <textarea
             value={draftText}
             onChange={(e) => setDraftText(e.target.value)}
-            placeholder="نظرت چیه؟ (اختیاری)"
+            placeholder={t('spots.textPlaceholder')}
             rows={2}
             style={{
               width: '100%',
@@ -160,7 +162,7 @@ export function ReviewList({ spotId }: ReviewListProps) {
               cursor: 'pointer',
             }}
           >
-            ثبت نظر
+            {t('spots.submit')}
           </button>
         </div>
       )}

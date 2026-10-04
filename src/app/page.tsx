@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useLang } from '@/components/LangProvider';
 import { campusLocations } from '@/data/locations';
 import { telegramChannels } from '@/data/channels';
 import { campusEvents } from '@/data/events';
@@ -7,55 +10,64 @@ const MODULES = [
   {
     href: '/map',
     icon: '🗺',
-    title: 'نقشه پردیس',
-    desc: 'جستجوی کلاس، استاد، سلف و درهای دانشگاه + مسیریابی',
+    titleKey: 'm.map.title',
+    descKey: 'm.map.desc',
     grad: 'linear-gradient(135deg, #1e3a8a, #3b82f6)',
   },
   {
     href: '/assistant',
     icon: '🤖',
-    title: 'دستیار هوشمند',
-    desc: '«استاد فلانی کجاست؟» — جواب فوری سوالات پرتردد',
+    titleKey: 'm.assistant.title',
+    descKey: 'm.assistant.desc',
     grad: 'linear-gradient(135deg, #4c1d95, #8b5cf6)',
   },
   {
     href: '/news',
     icon: '📰',
-    title: 'اخبار و اطلاعیه‌ها',
-    desc: 'فید زنده‌ی کانال‌های تلگرام دانشگاه',
+    titleKey: 'm.news.title',
+    descKey: 'm.news.desc',
     grad: 'linear-gradient(135deg, #881337, #f43f5e)',
   },
   {
     href: '/spots',
     icon: '☕',
-    title: 'پاتوق‌های اطراف',
-    desc: 'کافه‌ها و رستوران‌ها با تگ، امتیاز و نظر دانشجویی',
+    titleKey: 'm.spots.title',
+    descKey: 'm.spots.desc',
     grad: 'linear-gradient(135deg, #7c2d12, #f97316)',
+  },
+  {
+    href: '/notes',
+    icon: '📚',
+    titleKey: 'm.notes.title',
+    descKey: 'm.notes.desc',
+    grad: 'linear-gradient(135deg, #5b21b6, #a78bfa)',
   },
   {
     href: '/schedule',
     icon: '📅',
-    title: 'برنامه و امتحانات',
-    desc: 'برنامه هفتگی، یادآور کلاسی و خروجی تقویم (.ics)',
+    titleKey: 'm.schedule.title',
+    descKey: 'm.schedule.desc',
     grad: 'linear-gradient(135deg, #14532d, #22c55e)',
   },
   {
     href: '/events',
     icon: '📣',
-    title: 'برد رویدادها',
-    desc: 'سمینارها، انجمن‌های علمی و برنامه‌های فرهنگی',
+    titleKey: 'm.events.title',
+    descKey: 'm.events.desc',
     grad: 'linear-gradient(135deg, #134e4a, #14b8a6)',
   },
   {
     href: '/game',
     icon: '🎮',
-    title: 'شکار گنج و بازی',
-    desc: 'اسکونجر هانت با QR، کوییز و لیدربورد',
+    titleKey: 'm.game.title',
+    descKey: 'm.game.desc',
     grad: 'linear-gradient(135deg, #9f1239, #ec4899)',
   },
 ];
 
 export default function Home() {
+  const { t, dir } = useLang();
+
   const upcoming = [...campusEvents]
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 2);
@@ -85,18 +97,18 @@ export default function Home() {
           </div>
           <h1 style={{ marginTop: 16, fontSize: 30, fontWeight: 900 }}>پردیس</h1>
           <p style={{ marginTop: 8, fontSize: 15, opacity: 0.9, lineHeight: 2 }}>
-            اپلیکیشن جامع دانشجویی دانشگاه علم و صنعت ایران
+            {t('home.heroSub')}
             <br />
             <span style={{ fontSize: 13, opacity: 0.75 }}>
-              نقشه، دستیار هوشمند، اخبار، پاتوق‌ها، برنامه کلاس، رویدادها و بازی — همه در یک اپ
+              {t('home.heroTagline')}
             </span>
           </p>
 
           <div style={{ marginTop: 20, display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
             {[
-              `${campusLocations.length}+ مکان روی نقشه`,
-              `${telegramChannels.length} کانال دانشگاه`,
-              'کاملاً رایگان',
+              t('home.chipLocations', { n: campusLocations.length }),
+              t('home.chipChannels', { n: telegramChannels.length }),
+              t('home.chipFree'),
             ].map((s) => (
               <span key={s} style={{
                 padding: '6px 14px',
@@ -113,7 +125,7 @@ export default function Home() {
       </section>
 
       {/* ── ماژول‌ها ── */}
-      <section dir="rtl" style={{ maxWidth: 720, margin: '0 auto', padding: '0 16px', position: 'relative', zIndex: 2 }}>
+      <section dir={dir} style={{ maxWidth: 720, margin: '0 auto', padding: '0 16px', position: 'relative', zIndex: 2 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))', gap: 14, marginTop: -28 }}>
           {MODULES.map((m) => (
             <Link
@@ -131,17 +143,17 @@ export default function Home() {
                 {m.icon}
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 800, fontSize: 15.5 }}>{m.title}</div>
-                <div style={{ marginTop: 3, color: 'var(--text-2)', fontSize: 12.5, lineHeight: 1.9 }}>{m.desc}</div>
+                <div style={{ fontWeight: 800, fontSize: 15.5 }}>{t(m.titleKey)}</div>
+                <div style={{ marginTop: 3, color: '#64748b', fontSize: 12.5, lineHeight: 1.9 }}>{t(m.descKey)}</div>
               </div>
-              <div style={{ color: 'var(--text-3)', fontSize: 18 }}>‹</div>
+              <div style={{ color: '#94a3b8', fontSize: 18 }}>{dir === 'rtl' ? '‹' : '›'}</div>
             </Link>
           ))}
         </div>
 
         {/* ── رویدادهای نزدیک ── */}
         <h2 style={{ marginTop: 32, marginBottom: 12, fontSize: 17, fontWeight: 800 }}>
-          📣 رویدادهای پیش‌رو
+          {t('home.upcoming')}
         </h2>
         <div style={{ display: 'grid', gap: 10 }}>
           {upcoming.map((ev) => (
@@ -155,14 +167,14 @@ export default function Home() {
                 <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--primary)' }}>
                   {new Date(ev.date).toLocaleDateString('fa-IR', { day: 'numeric' })}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-2)' }}>
+                <div style={{ fontSize: 11, color: '#64748b' }}>
                   {new Date(ev.date).toLocaleDateString('fa-IR', { month: 'long' })}
                 </div>
               </div>
               <div style={{ width: 1, height: 34, background: 'var(--border)' }} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: 14 }}>{ev.title}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>{ev.place}</div>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{ev.place}</div>
               </div>
             </Link>
           ))}
@@ -176,16 +188,16 @@ export default function Home() {
         >
           <div style={{ fontSize: 28 }}>📰</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 800, fontSize: 15 }}>اخبار دانشگاه، زنده از تلگرام</div>
+            <div style={{ fontWeight: 800, fontSize: 15 }}>{t('home.newsBannerTitle')}</div>
             <div style={{ fontSize: 12.5, opacity: 0.85, marginTop: 2 }}>
-              {telegramChannels.slice(0, 4).map((c) => '@' + c.id).join('، ')} و {telegramChannels.length - 4} کانال دیگر
+              {telegramChannels.slice(0, 4).map((c) => '@' + c.id).join('، ')} {t('home.newsBannerMore', { n: telegramChannels.length - 4 })}
             </div>
           </div>
-          <div style={{ fontSize: 18 }}>‹</div>
+          <div style={{ fontSize: 18 }}>{dir === 'rtl' ? '‹' : '›'}</div>
         </Link>
 
-        <p style={{ marginTop: 28, textAlign: 'center', color: 'var(--text-3)', fontSize: 12 }}>
-          ساخت دانشجویان — قابل نصب روی گوشی (PWA) و کاملاً رایگان
+        <p style={{ marginTop: 28, textAlign: 'center', color: '#94a3b8', fontSize: 12 }}>
+          {t('home.builtBy')}
         </p>
       </section>
     </main>

@@ -1,16 +1,16 @@
-// src/components/ui/FilterBar.tsx
 'use client';
 
 import { LocationCategory } from '@/types/location';
+import { useLang } from '@/components/LangProvider';
 
-const CATEGORIES: { value: LocationCategory | 'all'; label: string }[] = [
-  { value: 'all',      label: 'همه' },
-  { value: 'academic', label: '🎓 آموزشی' },
-  { value: 'food',     label: '🍽️ غذا' },
-  { value: 'admin',    label: '🏛️ اداری' },
-  { value: 'sport',    label: '⚽ ورزشی' },
-  { value: 'gate',     label: '🚪 درها' },
-  { value: 'other',    label: '📍 سایر' },
+const CATEGORIES: { value: LocationCategory | 'all'; key: string }[] = [
+  { value: 'all',      key: 'filter.all' },
+  { value: 'academic', key: 'filter.academic' },
+  { value: 'food',     key: 'filter.food' },
+  { value: 'admin',    key: 'filter.admin' },
+  { value: 'sport',    key: 'filter.sport' },
+  { value: 'gate',     key: 'filter.gate' },
+  { value: 'other',    key: 'filter.other' },
 ];
 
 interface FilterBarProps {
@@ -19,9 +19,11 @@ interface FilterBarProps {
 }
 
 export default function FilterBar({ selected, onChange }: FilterBarProps) {
+  const { t, dir } = useLang();
+
   return (
     <div
-      dir="rtl"
+      dir={dir}
       style={{
         display: 'flex',
         gap: '8px',
@@ -49,7 +51,7 @@ export default function FilterBar({ selected, onChange }: FilterBarProps) {
               transition: 'all 150ms ease',
             }}
           >
-            {cat.label}
+            {t(cat.key)}
           </button>
         );
       })}

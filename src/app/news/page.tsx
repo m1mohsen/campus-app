@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import PageHeader from '@/components/PageHeader';
+import { useLang } from '@/components/LangProvider';
 import { telegramChannels, seedPosts, baleChannels, TelegramChannel } from '@/data/channels';
 
 interface Post {
@@ -29,6 +30,7 @@ function formatDate(iso: string | null): string {
 }
 
 export default function NewsPage() {
+  const { t } = useLang();
   const [selected, setSelected] = useState<string>('iust_ac');
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,8 +84,8 @@ export default function NewsPage() {
     <main>
       <PageHeader
         icon="📰"
-        title="اخبار و اطلاعیه‌ها"
-        subtitle="فید زنده‌ی کانال‌های تلگرام دانشگاه — از اخبار رسمی آموزش تا خبرهای دانشجویی"
+        title={t('news.title')}
+        subtitle={t('news.subtitle')}
         color="rose"
       />
 
@@ -107,21 +109,21 @@ export default function NewsPage() {
         >
           <div style={{ fontSize: 30 }}>🏛</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 800, fontSize: 15 }}>سامانه گلستان دانشگاه</div>
+            <div style={{ fontWeight: 800, fontSize: 15 }}>{t('news.golestanTitle')}</div>
             <div style={{ fontSize: 12.5, opacity: 0.9, marginTop: 3, lineHeight: 1.8 }}>
-              سایت اصلی دانشگاه — اطلاعیه‌های رسمی آموزش، انتخاب واحد، شهریه و کارهای اداری
+              {t('news.golestanDesc')}
             </div>
           </div>
           <div style={{ fontSize: 18 }}>↗</div>
         </a>
 
         <p style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 14, lineHeight: 1.9 }}>
-          کانال‌های زیر را انتخاب کنید تا آخرین پست‌ها را ببینید؛ برای اطلاعیه‌های اداری رسمی، گلستان مرجع اصلی است.
+          {t('news.pickHint')}
         </p>
 
         {/* کانال‌های بله */}
         <h2 style={{ fontSize: 14, fontWeight: 800, margin: '4px 0 8px', color: 'var(--text)' }}>
-          💠 کانال‌های بله
+          {t('news.baleHeading')}
         </h2>
         <div style={{ display: 'grid', gap: 8, marginBottom: 18 }}>
           {baleChannels.map((ch) => (
@@ -153,7 +155,7 @@ export default function NewsPage() {
         </div>
 
         <h2 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 8px', color: 'var(--text)' }}>
-          📨 کانال‌های تلگرام
+          {t('news.telegramHeading')}
         </h2>
 
         {/* انتخاب کانال */}
@@ -180,18 +182,17 @@ export default function NewsPage() {
         }}>
           <div style={{ fontSize: 13, color: 'var(--text-2)' }}>
             {channelTitle && <strong style={{ color: 'var(--text)' }}>{channelTitle}</strong>}
-            {live === true && <span style={{ marginRight: 8, color: '#16a34a', fontWeight: 700 }}>● زنده از تلگرام</span>}
-            {live === false && <span style={{ marginRight: 8, color: '#f59e0b', fontWeight: 700 }}>⚠ پست‌های ذخیره‌شده (دسترسی به تلگرام برقرار نشد)</span>}
+            {live === true && <span style={{ marginRight: 8, color: '#16a34a', fontWeight: 700 }}>{t('news.live')}</span>}
+            {live === false && <span style={{ marginRight: 8, color: '#f59e0b', fontWeight: 700 }}>{t('news.cached')}</span>}
           </div>
           <button onClick={() => load(selected)} className="btn btn-soft">
-            ↻ به‌روزرسانی
+            {t('news.refresh')}
           </button>
         </div>
 
         {live === false && (
           <div className="card" style={{ padding: 12, marginBottom: 14, fontSize: 13, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', lineHeight: 1.9 }}>
-            تلگرام مستقیماً در دسترس نیست (احتمالاً فیلترینگ). این پست‌ها آخرین محتوای ذخیره‌شده‌ی کانال هستند؛
-            برای دیدن همه می‌توانید مستقیم در تلگرام باز کنید:
+            {t('news.cachedNote')}
             <a href={`https://t.me/${selected}`} target="_blank" rel="noopener" style={{ color: '#2563eb', fontWeight: 700, marginRight: 4 }}>
               t.me/{selected}
             </a>
@@ -201,13 +202,13 @@ export default function NewsPage() {
         {/* پست‌ها */}
         {loading && (
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-3)', fontSize: 14 }}>
-            ⏳ در حال دریافت...
+            {t('news.loading')}
           </div>
         )}
 
         {!loading && posts.length === 0 && (
           <div className="card" style={{ padding: 24, textAlign: 'center', color: 'var(--text-2)', fontSize: 14 }}>
-            پستی برای نمایش نیست — در تلگرام باز کنید:
+            {t('news.empty')} —
             <a href={`https://t.me/${selected}`} target="_blank" rel="noopener" style={{ color: '#2563eb', fontWeight: 700, marginRight: 4 }}>
               t.me/{selected}
             </a>
@@ -234,12 +235,12 @@ export default function NewsPage() {
                 </div>
                 <p style={{ marginTop: 10, fontSize: 14, lineHeight: 2.1, whiteSpace: 'pre-wrap' }}>{p.text}</p>
                 <a
-                  href={`https://t.me/${selected}/${p.date ? '' : ''}`}
+                  href={`https://t.me/${selected}`}
                   target="_blank"
                   rel="noopener"
                   style={{ display: 'inline-block', marginTop: 8, fontSize: 12.5, color: 'var(--primary)', fontWeight: 700 }}
                 >
-                  مشاهده در تلگرام ↗
+                  {t('news.viewInTelegram')}
                 </a>
               </article>
             );
