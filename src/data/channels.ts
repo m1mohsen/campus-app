@@ -75,6 +75,39 @@ export const telegramChannels: TelegramChannel[] = [
 ];
 
 /**
+ * کانال‌های بله (پیام‌رسان داخلی) — فید خودکار ندارند؛ به‌صورت
+ * کارت لینک نمایش داده می‌شوند.
+ */
+export interface BaleChannel {
+  id: string;
+  title: string;
+  description: string;
+}
+
+export const baleChannels: BaleChannel[] = [
+  {
+    id: 'hamyaresalamat_iust',
+    title: 'همیار سلامت',
+    description: 'سلامت روان، مشاوره و برنامه‌های مرکز مشاوره دانشجویی',
+  },
+  {
+    id: 'iustedu',
+    title: 'آموزش دانشگاه (بله)',
+    description: 'اطلاعیه‌های آموزش و گلستان روی پیام‌رسان بله',
+  },
+  {
+    id: 'iust_lib',
+    title: 'کتاب‌خانه مرکزی (بله)',
+    description: 'ساعات کاری، منابع جدید و اخبار کتاب‌خانه',
+  },
+  {
+    id: 'gomnam_heyat',
+    title: 'هیئت شهدای گمنام',
+    description: 'برنامه‌های هیئت دانشجویی شهدای گمنام دانشگاه',
+  },
+];
+
+/**
  * پست‌های واقعی ذخیره‌شده از کانال‌ها (مهر ۱۴۰۵) — به‌عنوان پشتیبان
  * وقتی دسترسی مستقیم به تلگرام برقرار نیست (مثلاً فیلترینگ)
  */

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import PageHeader from '@/components/PageHeader';
-import { telegramChannels, seedPosts, TelegramChannel } from '@/data/channels';
+import { telegramChannels, seedPosts, baleChannels, TelegramChannel } from '@/data/channels';
 
 interface Post {
   date: string | null;
@@ -118,6 +118,43 @@ export default function NewsPage() {
         <p style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 14, lineHeight: 1.9 }}>
           کانال‌های زیر را انتخاب کنید تا آخرین پست‌ها را ببینید؛ برای اطلاعیه‌های اداری رسمی، گلستان مرجع اصلی است.
         </p>
+
+        {/* کانال‌های بله */}
+        <h2 style={{ fontSize: 14, fontWeight: 800, margin: '4px 0 8px', color: 'var(--text)' }}>
+          💠 کانال‌های بله
+        </h2>
+        <div style={{ display: 'grid', gap: 8, marginBottom: 18 }}>
+          {baleChannels.map((ch) => (
+            <a
+              key={ch.id}
+              href={`https://ble.ir/${ch.id}`}
+              target="_blank"
+              rel="noopener"
+              className="card card-hover"
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px' }}
+            >
+              <span style={{
+                width: 38, height: 38, borderRadius: 12, flexShrink: 0,
+                background: 'linear-gradient(135deg, #0e7490, #22d3ee)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 17,
+              }}>
+                💠
+              </span>
+              <span style={{ flex: 1 }}>
+                <span style={{ display: 'block', fontWeight: 700, fontSize: 14 }}>{ch.title}</span>
+                <span style={{ display: 'block', fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>
+                  {ch.description}
+                </span>
+              </span>
+              <span style={{ fontSize: 16, color: 'var(--text-3)' }}>↗</span>
+            </a>
+          ))}
+        </div>
+
+        <h2 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 8px', color: 'var(--text)' }}>
+          📨 کانال‌های تلگرام
+        </h2>
 
         {/* انتخاب کانال */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>

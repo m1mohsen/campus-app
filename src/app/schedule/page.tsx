@@ -221,10 +221,10 @@ export default function SchedulePage() {
                     {dayName}{dayIndex === todayFa ? ' (امروز)' : ''}
                   </div>
                   {dayClasses.map((c) => (
-                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px dashed var(--border)' }}>
-                      <div style={{ fontSize: 13, color: '#64748b', flexShrink: 0, direction: 'ltr' }}>{c.start}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: 14 }}>{c.course}</div>
+                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderTop: '1px dashed var(--border)', flexWrap: 'wrap' }}>
+                      <div style={{ fontSize: 12.5, color: '#64748b', flexShrink: 0, direction: 'ltr' }}>{c.start}</div>
+                      <div style={{ flex: 1, minWidth: 120 }}>
+                        <div style={{ fontWeight: 600, fontSize: 13.5 }}>{c.course}</div>
                         <div style={{ fontSize: 12, color: '#64748b' }}>{c.locationName}</div>
                       </div>
                       {c.locationId && (
@@ -234,7 +234,7 @@ export default function SchedulePage() {
                       )}
                       <button
                         onClick={() => setClasses((prev) => prev.filter((x) => x.id !== c.id))}
-                        style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 14, flexShrink: 0 }}
+                        style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 13, flexShrink: 0, padding: '2px 4px' }}
                         aria-label="حذف کلاس"
                       >
                         🗑
@@ -268,13 +268,13 @@ export default function SchedulePage() {
 
           <div style={{ marginTop: 16, display: 'grid', gap: 8 }}>
             {sortedExams.map((e) => (
-              <div key={e.id} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ fontWeight: 700, fontSize: 14, flex: 1 }}>{e.course}</div>
-                <div style={{ fontSize: 13, color: '#64748b', direction: 'ltr' }}>{e.date} — {e.time}</div>
+              <div key={e.id} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 12, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ fontWeight: 700, fontSize: 13.5, flex: 1, minWidth: 100 }}>{e.course}</div>
+                <div style={{ fontSize: 12, color: '#64748b', direction: 'ltr' }}>{e.date} — {e.time}</div>
                 <div style={{ fontSize: 12, color: '#64748b' }}>{e.location}</div>
                 <button
                   onClick={() => setExams((prev) => prev.filter((x) => x.id !== e.id))}
-                  style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#dc2626' }}
+                  style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#dc2626', padding: '2px 4px' }}
                   aria-label="حذف امتحان"
                 >
                   🗑
@@ -295,12 +295,13 @@ export default function SchedulePage() {
 }
 
 const tabBtnStyle: React.CSSProperties = {
-  padding: '8px 16px',
-  borderRadius: 10,
+  padding: '6px 11px',
+  borderRadius: 9,
   border: '1px solid var(--border)',
-  fontSize: 13,
+  fontSize: 12,
   fontWeight: 700,
   cursor: 'pointer',
+  whiteSpace: 'nowrap',
 };
 
 const addBtnStyle: React.CSSProperties = {

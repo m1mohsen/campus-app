@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import ProfessorReviews from '@/components/professors/ProfessorReviews';
 import { notify } from '@/lib/notify';
 
 /**
@@ -57,7 +58,7 @@ const labelStyle: React.CSSProperties = {
 };
 
 export default function NotesPage() {
-  const [tab, setTab] = useState<'notes' | 'tutor'>('notes');
+  const [tab, setTab] = useState<'notes' | 'tutor' | 'professors'>('notes');
 
   const [notes, setNotes] = useLocalStorage<NoteListing[]>('noteListings', []);
   const [tutors, setTutors] = useLocalStorage<TutorListing[]>('tutorListings', []);
@@ -149,7 +150,7 @@ export default function NotesPage() {
         color="violet"
       />
       <main dir="rtl" style={{ maxWidth: 640, margin: '0 auto', padding: '16px 16px 48px' }}>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
           <button
             onClick={() => setTab('notes')}
             className={`chip ${tab === 'notes' ? 'chip-active' : ''}`}
@@ -161,6 +162,12 @@ export default function NotesPage() {
             className={`chip ${tab === 'tutor' ? 'chip-active' : ''}`}
           >
             👨‍🏫 تدریس دانشجویی ({tutors.length})
+          </button>
+          <button
+            onClick={() => setTab('professors')}
+            className={`chip ${tab === 'professors' ? 'chip-active' : ''}`}
+          >
+            ⭐ نظرات اساتید
           </button>
         </div>
 
@@ -323,6 +330,8 @@ export default function NotesPage() {
             </div>
           </>
         )}
+
+        {tab === 'professors' && <ProfessorReviews />}
       </main>
     </>
   );

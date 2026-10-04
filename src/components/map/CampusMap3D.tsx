@@ -230,11 +230,11 @@ export default function CampusMap3D({ locations, onClose }: CampusMap3DProps) {
         © OpenStreetMap contributors · OpenFreeMap
       </div>
 
-      {/* دکمه بازگشت */}
+      {/* دکمه بازگشت — سمت چپ تا با دکمه‌های نقشه دوبعدی تداخل نکند */}
       <button
         onClick={onClose}
         style={{
-          position: 'absolute', top: 12, right: 12, zIndex: 1000,
+          position: 'absolute', top: 12, left: 12, zIndex: 1000,
           padding: '9px 16px', borderRadius: 12, border: 'none',
           background: 'rgba(15,23,42,0.85)', color: '#fff',
           fontWeight: 700, fontSize: 13.5, cursor: 'pointer',

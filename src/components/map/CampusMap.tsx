@@ -343,23 +343,25 @@ export default function CampusMap({
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
 
-      {/* دکمه مسیریابی */}
-      <button
-        onClick={routing.isActive ? clearRoute : toggleRouting}
-        aria-label={routing.isActive ? 'لغو مسیریابی' : 'شروع مسیریابی'}
-        style={{
-          ...buttonStyle,
-          top:             '12px',
-          background:      routing.isActive
-            ? 'linear-gradient(135deg, #b91c1c, #ef4444)'
-            : 'linear-gradient(135deg, #1e40af, #3b82f6)',
-        }}
-      >
-        {routing.isActive ? '✕ لغو مسیریابی' : '🧭 مسیریابی'}
-      </button>
+      {/* دکمه مسیریابی — در حالت سه‌بعدی مخفی تا با دکمه بازگشت تداخل نکند */}
+      {!show3D && (
+        <button
+          onClick={routing.isActive ? clearRoute : toggleRouting}
+          aria-label={routing.isActive ? 'لغو مسیریابی' : 'شروع مسیریابی'}
+          style={{
+            ...buttonStyle,
+            top:             '12px',
+            background:      routing.isActive
+              ? 'linear-gradient(135deg, #b91c1c, #ef4444)'
+              : 'linear-gradient(135deg, #1e40af, #3b82f6)',
+          }}
+        >
+          {routing.isActive ? '✕ لغو مسیریابی' : '🧭 مسیریابی'}
+        </button>
+      )}
 
       {/* دکمه موقعیت من */}
-      {routing.isActive && (
+      {routing.isActive && !show3D && (
         <button
           onClick={locateMe}
           disabled={routing.locating}
@@ -403,7 +405,7 @@ export default function CampusMap({
       </button>
 
       {/* پنل راهنمای مسیریابی */}
-      {routing.isActive && (
+      {routing.isActive && !show3D && (
         <div
           style={{
             position:        'absolute',
